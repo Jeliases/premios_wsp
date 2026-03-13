@@ -9,12 +9,12 @@ import {
   LogIn, 
   Maximize2, 
   X, 
-  ChevronLeft 
+  ChevronLeft,
+  Volume2
 } from 'lucide-react'
 
-// LISTA DE ADMINISTRADORES (Correos autorizados)
 const ADMIN_WHITELIST = [
-  "tu-correo-principal@gmail.com", // Reemplaza por tu correo
+  "tu-correo-principal@gmail.com", 
   "indira.cachay9@gmail.com",
   "thesoul986@gmail.com"
 ];
@@ -35,17 +35,15 @@ export default function DetalleVotacion() {
   const [loading, setLoading] = useState(true)
   const [votandoId, setVotandoId] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
-  const [zoomImg, setZoomImg] = useState<string | null>(null)
+  const [expandedMedia, setExpandedMedia] = useState<Nominado | null>(null)
 
   useEffect(() => {
-    // 1. Verificar sesión del usuario y rol
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
     }
     checkUser()
 
-    // 2. Cargar nominados de esta categoría
     async function fetchNominados() {
       setLoading(true)
       const { data, error } = await supabase
@@ -74,26 +72,17 @@ export default function DetalleVotacion() {
     if (!user) return
     setVotandoId(clipId)
 
-    // Insertar el voto
     const { error } = await supabase
       .from('votos')
-      .insert({ 
-        user_id: user.id, 
-        clip_id: clipId, 
-        categoria_id: id 
-      })
+      .insert({ user_id: user.id, clip_id: clipId, categoria_id: id })
 
     if (error) {
-      if (error.code === '23505') {
-        alert("Ya has votado en esta categoría anteriormente.")
-      } else {
-        alert("Error al procesar el voto: " + error.message)
-      }
+      if (error.code === '23505') alert("Ya has votado en esta categoría anteriormente.")
+      else alert("Error: " + error.message)
       setVotandoId(null)
       return
     }
 
-    // LÓGICA DE SALTO AUTOMÁTICO
     const { data: categorias } = await supabase
       .from('categorias')
       .select('id')
@@ -102,16 +91,14 @@ export default function DetalleVotacion() {
     if (categorias) {
       const currentIdx = categorias.findIndex(cat => cat.id === id)
       const nextCat = categorias[currentIdx + 1]
-
       if (nextCat) {
-        alert("¡Voto registrado! Pasando a la siguiente categoría...")
+        alert("¡Voto registrado! Pasamos a la siguiente categoría...")
         router.push(`/votar/${nextCat.id}`)
       } else {
         alert("¡Felicidades! Has terminado de votar en todas las categorías.")
         router.push('/') 
       }
     }
-    
     setVotandoId(null)
   }
 
@@ -125,10 +112,9 @@ export default function DetalleVotacion() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 pb-20 selection:bg-yellow-500 selection:text-black">
+    <div className="min-h-screen bg-slate-950 text-white p-6 pb-20 selection:bg-yellow-500 selection:text-black font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* CABECERA DE NAVEGACIÓN */}
         <div className="flex justify-between items-center mb-12">
           <button 
             onClick={() => router.push('/')}
@@ -154,7 +140,6 @@ export default function DetalleVotacion() {
           </p>
         </header>
 
-        {/* CONTENEDOR DE NOMINADOS */}
         <div className={`grid gap-10 ${
           nominados.length > 0 && nominados[0].tipo === 'texto' 
           ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
@@ -165,41 +150,50 @@ export default function DetalleVotacion() {
               key={item.id} 
               className="group relative bg-slate-900/40 rounded-[3rem] overflow-hidden border border-white/5 hover:border-yellow-500/30 transition-all duration-700 flex flex-col shadow-2xl"
             >
-              {/* ÁREA MULTIMEDIA */}
               <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
                 {item.tipo === 'video' ? (
-                  <video 
-                    src={item.url_media} 
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                    onMouseEnter={(e) => e.currentTarget.play()}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.pause();
-                      e.currentTarget.currentTime = 0;
-                    }}
-                    muted loop
-                  />
-                ) : item.tipo === 'foto' ? (
                   <>
+                    <video 
+                      src={item.url_media} 
+                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.muted = false;
+                        e.currentTarget.play();
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.pause();
+                        e.currentTarget.currentTime = 0;
+                        e.currentTarget.muted = true;
+                      }}
+                      muted
+                      loop
+                      playsInline
+                    />
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                       <Volume2 size={14} className="text-yellow-500" />
+                    </div>
+                  </>
+                ) : item.tipo === 'foto' ? (
                     <img 
                       src={item.url_media} 
-                      alt={item.titulo} 
                       className="w-full h-full object-contain p-4 transition-transform duration-1000 group-hover:scale-105" 
+                      alt={item.titulo}
                     />
-                    <button 
-                      onClick={() => setZoomImg(item.url_media)}
-                      className="absolute top-6 right-6 bg-black/80 p-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-yellow-500 hover:text-black border border-white/10"
-                    >
-                      <Maximize2 size={18} />
-                    </button>
-                  </>
                 ) : (
                   <div className="w-full h-full p-12 flex items-center justify-center text-center bg-slate-900/20">
-                     <p className="text-2xl font-serif italic text-yellow-500/80 leading-snug">
-                       "{item.url_media}"
-                     </p>
+                     <p className="text-2xl font-serif italic text-yellow-500/80 leading-snug">"{item.url_media}"</p>
                   </div>
                 )}
                 
+                {item.tipo !== 'texto' && (
+                  <button 
+                    onClick={() => setExpandedMedia(item)}
+                    className="absolute top-6 right-6 bg-black/80 p-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-yellow-500 hover:text-black border border-white/10 z-10"
+                  >
+                    <Maximize2 size={18} />
+                  </button>
+                )}
+
                 {item.tipo === 'video' && (
                   <div className="absolute bottom-6 left-6 bg-yellow-500 p-2 rounded-xl pointer-events-none group-hover:scale-0 transition-transform duration-500 shadow-lg">
                     <Play size={14} className="text-black fill-black" />
@@ -207,23 +201,19 @@ export default function DetalleVotacion() {
                 )}
               </div>
 
-              {/* PIE DE TARJETA */}
               <div className="p-10 flex-1 flex flex-col justify-between bg-gradient-to-b from-transparent to-black/40">
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="h-[1px] w-6 bg-yellow-500/50"></div>
                     <span className="text-yellow-500 text-[9px] font-black uppercase tracking-[0.4em]">Candidato Oficial</span>
                   </div>
-                  <h3 className="text-4xl font-black uppercase italic tracking-tighter leading-none transition-colors group-hover:text-yellow-500">
+                  <h3 className="text-4xl font-black uppercase italic tracking-tighter leading-none group-hover:text-yellow-500 transition-colors">
                     {item.titulo}
                   </h3>
                 </div>
                 
                 {!user ? (
-                  <button 
-                    onClick={handleLoginGoogle}
-                    className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-yellow-500 transition-all flex items-center justify-center gap-3 text-[10px]"
-                  >
+                  <button onClick={handleLoginGoogle} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-yellow-500 transition-all flex items-center justify-center gap-3 text-[10px]">
                     <LogIn size={16} /> Identificarse para votar
                   </button>
                 ) : (
@@ -231,18 +221,10 @@ export default function DetalleVotacion() {
                     onClick={() => votar(item.id)}
                     disabled={votandoId !== null}
                     className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] transition-all text-[10px] flex items-center justify-center gap-3
-                      ${votandoId === item.id 
-                        ? 'bg-slate-800 text-slate-600' 
-                        : 'bg-white text-black hover:bg-yellow-500 active:scale-95 shadow-2xl'}
+                      ${votandoId === item.id ? 'bg-slate-800 text-slate-600' : 'bg-white text-black hover:bg-yellow-500 active:scale-95 shadow-2xl'}
                     `}
                   >
-                    {votandoId === item.id ? (
-                      <Loader2 className="animate-spin" size={18} />
-                    ) : (
-                      <>
-                        <CheckCircle2 size={18} strokeWidth={3} /> Confirmar Voto
-                      </>
-                    )}
+                    {votandoId === item.id ? <Loader2 className="animate-spin" size={18} /> : <><CheckCircle2 size={18} strokeWidth={3} /> Confirmar Voto</>}
                   </button>
                 )}
               </div>
@@ -251,20 +233,35 @@ export default function DetalleVotacion() {
         </div>
       </div>
 
-      {/* VISUALIZADOR DE FOTOS (ZOOM) */}
-      {zoomImg && (
+      {/* MODAL DE EXPANSIÓN (VÍDEOS Y FOTOS COOL) */}
+      {expandedMedia && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/98 flex items-center justify-center p-6 cursor-zoom-out animate-in fade-in duration-500"
-          onClick={() => setZoomImg(null)}
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-300"
+          onClick={() => setExpandedMedia(null)}
         >
-          <button className="absolute top-10 right-10 text-slate-500 hover:text-white transition-all">
-            <X size={40} />
+          <button className="absolute top-6 right-6 md:top-10 md:right-10 text-white/50 hover:text-white transition-all z-[110]">
+            <X size={48} />
           </button>
-          <img 
-            src={zoomImg} 
-            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/5" 
-            alt="Vista Expandida"
-          />
+          
+          <div className="relative max-w-6xl w-full max-h-full flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            {expandedMedia.tipo === 'video' ? (
+              <video 
+                src={expandedMedia.url_media} 
+                className="w-full h-auto max-h-[80vh] rounded-3xl shadow-[0_0_100px_rgba(234,179,8,0.2)] border border-white/10"
+                controls
+                autoPlay
+              />
+            ) : (
+              <img 
+                src={expandedMedia.url_media} 
+                className="w-full h-auto max-h-[80vh] object-contain rounded-3xl"
+                alt={expandedMedia.titulo}
+              />
+            )}
+            <h2 className="mt-8 text-2xl md:text-5xl font-black uppercase italic text-yellow-500 tracking-tighter">
+              {expandedMedia.titulo}
+            </h2>
+          </div>
         </div>
       )}
 
