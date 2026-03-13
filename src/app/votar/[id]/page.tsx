@@ -93,6 +93,7 @@ export default function DetalleVotacion() {
   const router = useRouter()
   
   const [nominados, setNominados] = useState<Nominado[]>([])
+  const [nombreCategoria, setNombreCategoria] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [votandoId, setVotandoId] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
@@ -105,17 +106,29 @@ export default function DetalleVotacion() {
     }
     checkUser()
 
-    async function fetchNominados() {
+    async function fetchData() {
       setLoading(true)
-      const { data } = await supabase
+      
+      // TRAER NOMINADOS
+      const { data: clipsData } = await supabase
         .from('clips') 
         .select('*')
         .eq('categoria_id', id)
       
-      if (data) setNominados(data as Nominado[])
+      if (clipsData) setNominados(clipsData as Nominado[])
+
+      // TRAER NOMBRE DE CATEGORÍA
+      const { data: catData } = await supabase
+        .from('categorias')
+        .select('nombre')
+        .eq('id', id)
+        .single()
+      
+      if (catData) setNombreCategoria(catData.nombre)
+
       setLoading(false)
     }
-    if (id) fetchNominados()
+    if (id) fetchData()
   }, [id])
 
   const handleLoginGoogle = async () => {
@@ -143,11 +156,11 @@ export default function DetalleVotacion() {
       return
     }
 
-    // NAVEGACIÓN AUTOMÁTICA
+    // Lógica de navegación automática
     const { data: categorias } = await supabase
       .from('categorias')
       .select('id')
-      .order('orden', { ascending: true }) // Cambiado a orden para ser consistentes
+      .order('id', { ascending: true })
 
     if (categorias) {
       const currentIdx = categorias.findIndex(cat => cat.id === id)
@@ -157,7 +170,7 @@ export default function DetalleVotacion() {
         router.push(`/votar/${nextCat.id}`)
       } else {
         alert("¡Gracias por participar! Has completado todas las categorías.")
-        router.push('/votar') // Regresa a la lista de categorías (completado)
+        router.push('/votar') 
       }
     }
     setVotandoId(null)
@@ -166,31 +179,36 @@ export default function DetalleVotacion() {
   if (loading) return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-yellow-500" size={40} />
-      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">Preparando Candidatos</span>
+      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 text-center">
+        PREPARANDO CANDIDATOS<br/>
+        <span className="text-[8px] opacity-50 tracking-widest italic">WSP AWARDS 2026</span>
+      </span>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-white">
+    <div className="min-h-screen bg-[#05070a] text-white selection:bg-yellow-500/30">
       
-      {/* HEADER FIJO MEJORADO */}
-      <nav className="sticky top-0 z-[40] bg-[#05070a]/80 backdrop-blur-xl border-b border-white/5 px-4 md:px-6 py-4">
+      {/* NAV CORREGIDO PARA DARLING */}
+      <nav className="sticky top-0 z-[40] bg-[#05070a]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <button 
             onClick={() => router.push('/votar')} 
-            className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors shrink-0"
+            className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
           >
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
-            <span className="text-[10px] font-black uppercase tracking-widest hidden xs:block">Regresar</span>
+            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Regresar</span>
           </button>
           
           <div className="flex items-center gap-3">
             {user && ADMIN_WHITELIST.includes(user.email) && (
-              <span className="text-[8px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full font-black uppercase">Staff Mode</span>
+              <span className="text-[8px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full font-black uppercase tracking-tighter">
+                Staff Mode
+              </span>
             )}
             <button 
-              onClick={() => router.push('/votar')} // <--- CORRECCIÓN: De '/' a '/votar'
-              className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors shrink-0"
+              onClick={() => router.push('/votar')} 
+              className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors"
             >
               <X size={18} />
             </button>
@@ -205,8 +223,10 @@ export default function DetalleVotacion() {
               <Award className="text-yellow-500" size={24} />
             </div>
           </div>
-          <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-[0.8]">
-            VOTO <span className="text-yellow-500">WSP</span>
+          {/* TÍTULO DINÁMICO CON ESTILO ORIGINAL */}
+          <h1 className="text-4xl md:text-7xl font-black italic uppercase tracking-tighter leading-[0.85]">
+            {nombreCategoria || 'CARGANDO'}<br/>
+            <span className="text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]">AWARDS</span>
           </h1>
           <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-black">Selecciona con sabiduría</p>
         </header>
@@ -235,7 +255,9 @@ export default function DetalleVotacion() {
 
               <div className="p-10 flex flex-col items-center text-center">
                 <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em] mb-3">Candidato Oficial</span>
-                <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter mb-10 group-hover:text-yellow-500 transition-colors">{item.titulo}</h3>
+                <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter mb-10 group-hover:text-yellow-500 transition-colors">
+                  {item.titulo}
+                </h3>
                 
                 {!user ? (
                   <button onClick={handleLoginGoogle} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] bg-white text-black text-[11px] flex items-center justify-center gap-3 hover:bg-yellow-500 transition-all active:scale-95 shadow-xl">
@@ -247,7 +269,7 @@ export default function DetalleVotacion() {
                     disabled={votandoId !== null}
                     className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl ${
                       votandoId === item.id 
-                      ? 'bg-slate-800 text-slate-500' 
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
                       : 'bg-white text-black hover:bg-yellow-500'
                     }`}
                   >
