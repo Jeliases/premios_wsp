@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { BarChart3, Loader2, Lock } from 'lucide-react'
+import { BarChart3, Loader2, Lock, TrendingUp } from 'lucide-react'
 
 interface Resultado {
   id: string;
@@ -20,19 +20,21 @@ export default function ResultadosPage() {
   const [resultados, setResultados] = useState<Resultado[]>([])
   const [catSeleccionada, setCatSeleccionada] = useState<string>('')
   const [loading, setLoading] = useState(true)
-  const [esPublico, setEsPublico] = useState<boolean | null>(null) // Nuevo: Control de acceso
+  const [esPublico, setEsPublico] = useState<boolean | null>(null)
 
   useEffect(() => {
     async function init() {
-      // 1. Verificar si los resultados están liberados
-      const { data: config } = await supabase.from('config_gala').select('resultados_publicos').eq('id', 'main_config').single()
-      setEsPublico(config?.resultados_publicos ?? false)
+      // Carga paralela de config y categorías
+      const [configRes, catsRes] = await Promise.all([
+        supabase.from('config_gala').select('resultados_publicos').eq('id', 'main_config').single(),
+        supabase.from('categorias').select('id, nombre').order('id', { ascending: true })
+      ])
 
-      // 2. Cargar categorías
-      const { data: cats } = await supabase.from('categorias').select('id, nombre').order('id', { ascending: true })
-      if (cats) {
-        setCategorias(cats)
-        setCatSeleccionada(cats[0]?.id)
+      setEsPublico(configRes.data?.resultados_publicos ?? false)
+
+      if (catsRes.data) {
+        setCategorias(catsRes.data)
+        setCatSeleccionada(catsRes.data[0]?.id || '')
       }
     }
     init()
@@ -65,27 +67,28 @@ export default function ResultadosPage() {
     fetchResultados()
   }, [catSeleccionada, esPublico])
 
-  // PANTALLA DE CARGA INICIAL
   if (esPublico === null) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-black flex items-center justify-center">
        <Loader2 className="animate-spin text-yellow-500" size={40} />
     </div>
   )
 
-  // PANTALLA DE BLOQUEO (Si el switch en Admin está apagado)
   if (!esPublico) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-center p-6">
-        <div className="bg-slate-900/50 p-16 rounded-[3rem] border border-slate-800 shadow-2xl">
-          <Lock size={60} className="text-yellow-500/20 mb-6 mx-auto" />
-          <h1 className="text-4xl md:text-5xl font-black uppercase italic italic text-white mb-4 tracking-tighter">
-            ACCESO <span className="text-yellow-500">RESTRINGIDO</span>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900/20 via-black to-black">
+        <div className="bg-slate-900/40 p-12 md:p-16 rounded-[3.5rem] border border-white/5 shadow-2xl backdrop-blur-xl max-w-2xl">
+          <div className="bg-yellow-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8 border border-yellow-500/20">
+            <Lock size={32} className="text-yellow-500" />
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black uppercase italic text-white mb-6 tracking-tighter leading-none">
+            RESULTADOS <span className="text-yellow-500">ENCRIPTADOS</span>
           </h1>
-          <p className="text-slate-500 font-bold max-w-sm uppercase tracking-widest text-[10px] leading-loose">
-            LOS RESULTADOS OFICIALES SE REVELARÁN EXCLUSIVAMENTE DURANTE LA CEREMONIA EN VIVO.
+          <p className="text-slate-500 font-bold max-w-sm mx-auto uppercase tracking-[0.2em] text-[11px] leading-relaxed">
+            El escrutinio final está bajo custodia. Se revelará automáticamente al finalizar el periodo de votación.
           </p>
-          <div className="mt-10 py-2 px-8 border border-yellow-500/30 rounded-full text-yellow-500 text-[10px] font-black uppercase tracking-[0.3em] inline-block">
-            SISTEMA CERRADO
+          <div className="mt-12 flex items-center justify-center gap-2 text-yellow-500/50 font-black text-[9px] uppercase tracking-widest">
+            <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+            Servidor Protegido
           </div>
         </div>
       </div>
@@ -93,76 +96,88 @@ export default function ResultadosPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 text-white min-h-screen pb-20">
-      <header className="text-center mb-16 mt-8">
-        <div className="inline-flex items-center justify-center p-3 bg-yellow-500/10 rounded-2xl mb-4 border border-yellow-500/20">
-          <BarChart3 size={32} className="text-yellow-500" />
-        </div>
-        <h1 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter leading-none">
-          CONTEO <span className="text-yellow-500 underline decoration-white/10 italic">OFICIAL</span>
-        </h1>
-        <p className="text-slate-500 mt-4 uppercase tracking-[0.4em] text-xs font-bold">ACTUALIZACIÓN EN TIEMPO REAL</p>
-      </header>
-
-      {/* SELECTOR DE CATEGORÍA */}
-      <div className="flex flex-wrap justify-center gap-3 mb-16">
-        {categorias.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setCatSeleccionada(cat.id)}
-            className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border-2 
-              ${catSeleccionada === cat.id 
-                ? 'bg-white border-white text-black scale-105 shadow-xl' 
-                : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-white'}`}
-          >
-            {cat.nombre}
-          </button>
-        ))}
-      </div>
-
-      {/* GRÁFICA DE RESULTADOS */}
-      <div className="space-y-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="animate-spin text-yellow-500 mb-4" size={40} />
-            <p className="text-slate-500 uppercase font-black tracking-widest text-[10px]">ANALIZANDO REGISTROS...</p>
+    <div className="min-h-screen bg-black pt-12 pb-24 px-4">
+      <div className="max-w-4xl mx-auto">
+        <header className="text-center mb-16">
+          <div className="inline-flex items-center gap-3 px-4 py-2 bg-yellow-500/10 rounded-full border border-yellow-500/20 mb-6">
+            <TrendingUp size={14} className="text-yellow-500" />
+            <span className="text-yellow-500 text-[9px] font-black uppercase tracking-widest">Live Updates</span>
           </div>
-        ) : (
-          resultados.map((res, index) => (
-            <div 
-              key={res.id} 
-              className={`relative p-8 rounded-[2rem] border transition-all duration-700 
-                ${index === 0 
-                  ? 'bg-slate-900/40 border-yellow-500/50' 
-                  : 'bg-slate-950/50 border-white/5'}`}
+          <h1 className="text-6xl md:text-7xl font-black italic uppercase tracking-tighter leading-none text-white">
+            CONTEO <span className="text-yellow-500">REAL-TIME</span>
+          </h1>
+          <p className="text-slate-600 mt-4 uppercase tracking-[0.4em] text-[10px] font-black">Transparencia Total WSP</p>
+        </header>
+
+        {/* SELECTOR */}
+        <div className="flex flex-wrap justify-center gap-2 mb-12">
+          {categorias.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setCatSeleccionada(cat.id)}
+              className={`px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${
+                catSeleccionada === cat.id 
+                  ? 'bg-yellow-500 border-yellow-500 text-black shadow-[0_0_25px_rgba(234,179,8,0.3)] scale-105' 
+                  : 'bg-slate-900/50 border-white/5 text-slate-500 hover:border-white/20'}`}
             >
-              <div className="flex justify-between items-end mb-4">
-                <div>
-                  <h3 className={`text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3
-                    ${index === 0 ? 'text-yellow-500' : 'text-white'}`}>
-                    {res.titulo}
-                  </h3>
-                  <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em] mt-1">
-                    {res.votos_count} VOTOS REGISTRADOS
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className={`text-4xl font-black italic tracking-tighter ${index === 0 ? 'text-white' : 'text-slate-500'}`}>
-                    {res.porcentaje.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-              
-              <div className="h-4 bg-black rounded-full overflow-hidden border border-white/5 p-0.5">
-                <div 
-                  className={`h-full transition-all duration-[1.5s] ease-out rounded-full
-                    ${index === 0 ? 'bg-yellow-500' : 'bg-slate-800'}`}
-                  style={{ width: `${res.porcentaje}%` }}
-                />
-              </div>
+              {cat.nombre}
+            </button>
+          ))}
+        </div>
+
+        {/* RESULTADOS */}
+        <div className="space-y-4">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <Loader2 className="animate-spin text-yellow-500 mb-6" size={40} />
+              <p className="text-slate-600 uppercase font-black tracking-[0.3em] text-[9px]">Sincronizando Votos...</p>
             </div>
-          ))
-        )}
+          ) : (
+            resultados.map((res, index) => (
+              <div 
+                key={res.id} 
+                className={`relative p-8 rounded-[2.5rem] border transition-all duration-500 group
+                  ${index === 0 
+                    ? 'bg-slate-900/40 border-yellow-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' 
+                    : 'bg-slate-900/20 border-white/5'}`}
+              >
+                {index === 0 && (
+                  <div className="absolute -top-3 -right-3 bg-yellow-500 text-black text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter shadow-xl">
+                    Líder Actual
+                  </div>
+                )}
+
+                <div className="flex justify-between items-end mb-6">
+                  <div className="space-y-1">
+                    <h3 className={`text-2xl md:text-3xl font-black uppercase italic tracking-tighter transition-colors
+                      ${index === 0 ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
+                      {res.titulo}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                      <span className={index === 0 ? 'text-yellow-500/70' : ''}>{res.votos_count} Votos</span>
+                      <span className="opacity-30">•</span>
+                      <span>Posición #{index + 1}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-4xl font-black italic tracking-tighter ${index === 0 ? 'text-yellow-500' : 'text-white/40'}`}>
+                      {res.porcentaje.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                
+                {/* BARRA DE PROGRESO */}
+                <div className="h-3 bg-black/60 rounded-full overflow-hidden border border-white/5 p-0.5">
+                  <div 
+                    className={`h-full transition-all duration-[1.5s] cubic-bezier(0.34, 1.56, 0.64, 1) rounded-full shadow-[0_0_15px_rgba(234,179,8,0.2)]
+                      ${index === 0 ? 'bg-yellow-500' : 'bg-slate-700'}`}
+                    style={{ width: `${res.porcentaje}%` }}
+                  />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

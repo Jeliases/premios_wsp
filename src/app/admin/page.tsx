@@ -10,7 +10,8 @@ import {
   Loader2, 
   Upload, 
   Eye, 
-  EyeOff 
+  EyeOff,
+  Plus // Importamos el icono Plus real
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -61,12 +62,17 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  const crearCategoria = async () => {
-    if (!nuevaCat) return
-    const { error } = await supabase.from('categorias').insert([{ nombre: nuevaCat }])
+  // MEJORADO: Función de crear categoría con feedback
+  const crearCategoria = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!nuevaCat.trim()) return;
+    
+    const { error } = await supabase.from('categorias').insert([{ nombre: nuevaCat.trim() }])
     if (!error) {
       setNuevaCat('')
-      loadData()
+      await loadData() // Forzamos recarga de la lista
+    } else {
+      alert("Error: " + error.message)
     }
   }
 
@@ -132,34 +138,34 @@ export default function AdminPage() {
 
   if (!user || !ADMIN_WHITELIST.includes(user.email)) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-10 text-center">
-        <div className="bg-slate-900/50 p-12 rounded-[3rem] border border-red-500/30">
-          <h1 className="text-5xl font-black mb-4 italic uppercase text-red-500">Acceso Denegado</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Zona exclusiva para Staff WSP.</p>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 md:p-10 text-center">
+        <div className="bg-slate-900/50 p-8 md:p-12 rounded-[2.5rem] border border-red-500/30 w-full max-w-lg">
+          <h1 className="text-4xl md:text-5xl font-black mb-4 italic uppercase text-red-500">Acceso Denegado</h1>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Zona exclusiva para Staff WSP.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black pt-10 pb-20"> {/* Se añadió pt-10 para separar del Navbar */}
-      <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-12">
+    <div className="min-h-screen bg-black pt-10 pb-20 px-4 md:px-0">
+      <div className="max-w-6xl mx-auto space-y-12">
         
         {/* HEADER DE PANEL */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/40 p-8 rounded-[3rem] border border-white/5 shadow-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/40 p-6 md:p-8 rounded-[3rem] border border-white/5 shadow-2xl">
           <div className="flex items-center gap-4">
               <div className="bg-yellow-500 p-3 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.3)]">
                   <LayoutDashboard className="text-black" size={28} />
               </div>
               <div>
-                  <h1 className="text-3xl font-black uppercase italic tracking-tighter text-white">Gala Control</h1>
+                  <h1 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-white">Gala Control</h1>
                   <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Panel de Organización</p>
               </div>
           </div>
 
           <button 
               onClick={toggleResultados}
-              className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
+              className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
                   resultadosPublicos ? 'bg-red-500/10 text-red-500 border border-red-500/50' : 'bg-green-500 text-black shadow-lg shadow-green-500/20'
               }`}
           >
@@ -180,13 +186,20 @@ export default function AdminPage() {
                   value={nuevaCat}
                   onChange={(e) => setNuevaCat(e.target.value)}
                   placeholder="Nombre..."
-                  className="flex-1 bg-black border border-white/10 p-3 rounded-xl text-xs outline-none focus:border-yellow-500 transition-all font-bold text-white"
+                  className="flex-1 bg-black border border-white/10 p-4 rounded-xl text-xs outline-none focus:border-yellow-500 transition-all font-bold text-white min-w-0"
                 />
-                <button onClick={crearCategoria} className="bg-yellow-500 text-black px-4 rounded-xl font-black hover:bg-yellow-400">＋</button>
+                {/* BOTÓN REPARADO */}
+                <button 
+                  type="button"
+                  onClick={crearCategoria} 
+                  className="bg-yellow-500 text-black w-12 h-12 flex items-center justify-center rounded-xl font-black hover:bg-yellow-400 active:scale-90 transition-transform flex-shrink-0"
+                >
+                  <Plus size={20} strokeWidth={3} />
+                </button>
               </div>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                 {categorias.map(c => (
-                  <div key={c.id} className="text-[9px] bg-black/40 p-3 rounded-xl border border-white/5 flex justify-between items-center uppercase font-black text-slate-400">
+                  <div key={c.id} className="text-[9px] bg-black/40 p-4 rounded-xl border border-white/5 flex justify-between items-center uppercase font-black text-slate-400">
                     {c.nombre}
                   </div>
                 ))}
@@ -196,7 +209,7 @@ export default function AdminPage() {
 
           {/* FORMULARIO NOMINADOS */}
           <div className="lg:col-span-2">
-            <form onSubmit={guardarNominado} className="bg-slate-900/80 p-8 rounded-[2.5rem] border border-white/5 space-y-8 shadow-2xl">
+            <form onSubmit={guardarNominado} className="bg-slate-900/80 p-6 md:p-8 rounded-[2.5rem] border border-white/5 space-y-8 shadow-2xl">
               <h2 className="text-sm font-black flex items-center gap-2 uppercase italic text-yellow-500">
                 <PlusCircle size={18} /> Añadir Nominado
               </h2>
@@ -232,13 +245,13 @@ export default function AdminPage() {
 
               <div className="space-y-4">
                 <label className="text-[9px] font-black uppercase text-slate-500 text-center block">Tipo de Medio</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {['video', 'foto', 'texto'].map((t) => (
                     <button
                       key={t}
                       type="button"
                       onClick={() => { setForm({...form, tipo: t as any, url_media: ''}); setFile(null); }}
-                      className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase border transition-all ${
+                      className={`py-3 rounded-xl text-[9px] font-black uppercase border transition-all ${
                         form.tipo === t ? 'bg-yellow-500 text-black border-yellow-500 shadow-lg shadow-yellow-500/20' : 'border-white/5 text-slate-500 hover:border-white/20'
                       }`}
                     >
@@ -251,7 +264,7 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {form.tipo === 'texto' ? (
                   <textarea 
-                    className="w-full bg-black border border-white/10 p-5 rounded-2xl focus:border-yellow-500 outline-none text-xs text-white min-h-[100px]"
+                    className="w-full bg-black border border-white/10 p-5 rounded-2xl focus:border-yellow-500 outline-none text-xs text-white min-h-[120px]"
                     placeholder="Escribe el texto aquí..."
                     value={form.url_media}
                     onChange={(e) => setForm({...form, url_media: e.target.value})}
@@ -268,7 +281,7 @@ export default function AdminPage() {
                       />
                       <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-4 border-2 border-dashed border-white/5 rounded-2xl p-8 bg-black/40 hover:border-yellow-500/40 transition-all">
                           <Upload size={20} className="text-slate-500" />
-                          <span className="text-[10px] font-black uppercase text-slate-400">
+                          <span className="text-[10px] font-black uppercase text-slate-400 text-center">
                               {file ? file.name : `Subir ${form.tipo}`}
                           </span>
                       </label>
@@ -296,7 +309,7 @@ export default function AdminPage() {
             <span className="text-[10px] font-black text-slate-500">Registrados: {nominados.length}</span>
           </div>
           <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[600px]">
                 <thead>
                     <tr className="text-slate-500 text-[9px] uppercase tracking-widest border-b border-white/5">
                       <th className="p-6">Categoría</th>
@@ -318,7 +331,7 @@ export default function AdminPage() {
                             <span className="text-slate-500 text-[9px] uppercase font-mono">{n.tipo}</span>
                         </td>
                         <td className="p-6 text-right">
-                          <button onClick={() => borrarNominado(n.id)} className="text-slate-600 hover:text-red-500 transition-colors">
+                          <button onClick={() => borrarNominado(n.id)} className="text-slate-600 hover:text-red-500 transition-colors p-2">
                               <Trash2 size={18} />
                           </button>
                         </td>

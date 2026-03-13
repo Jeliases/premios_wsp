@@ -11,7 +11,8 @@ import {
   X, 
   ChevronLeft,
   Volume2,
-  VolumeX
+  VolumeX,
+  Award
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -29,10 +30,11 @@ interface Nominado {
   categoria_id: string;
 }
 
-// COMPONENTE DE VIDEO OPTIMIZADO PARA MÓVIL
-function VideoPlayer({ src, titulo }: { src: string, titulo: string }) {
+// --- COMPONENTE DE VIDEO OPTIMIZADO ---
+function VideoPlayer({ src, onExpand }: { src: string, onExpand: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,47 +43,47 @@ function VideoPlayer({ src, titulo }: { src: string, titulo: string }) {
       const isNowMuted = !videoRef.current.muted;
       videoRef.current.muted = isNowMuted;
       setMuted(isNowMuted);
-      if (!isNowMuted) videoRef.current.play();
     }
   };
 
   return (
-    <div className="relative w-full h-full group overflow-hidden">
+    <div className="relative w-full h-full group overflow-hidden bg-black flex items-center justify-center">
       <video 
         ref={videoRef}
         src={src} 
-        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+        className="w-full h-full object-contain md:object-cover"
         muted={muted}
         loop
         autoPlay
-        playsInline // CRÍTICO PARA IPHONE
+        playsInline
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onClick={toggleAudio}
       />
       
-      {/* Botón de Sonido Flotante */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+
       <button 
         onClick={toggleAudio}
-        className="absolute bottom-4 right-4 z-20 bg-black/70 backdrop-blur-xl p-3 rounded-2xl border border-white/10 hover:bg-yellow-500 transition-all active:scale-90"
+        className="absolute bottom-4 right-4 z-20 bg-black/40 backdrop-blur-xl p-3 rounded-2xl border border-white/10 active:scale-90 transition-all"
       >
-        {muted ? (
-          <div className="flex items-center gap-2">
-            <VolumeX size={16} className="text-red-500" />
-            <span className="text-[9px] font-black uppercase text-white pr-1">Sin Sonido</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Volume2 size={16} className="text-green-500" />
-            <span className="text-[9px] font-black uppercase text-white pr-1">Con Sonido</span>
-          </div>
-        )}
+        {muted ? <VolumeX size={16} className="text-white/50" /> : <Volume2 size={16} className="text-yellow-500" />}
       </button>
 
-      {/* Indicador Play inicial */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:hidden transition-all">
-         <div className="bg-yellow-500/20 p-4 rounded-full backdrop-blur-sm border border-yellow-500/50">
-            <Play size={24} className="text-yellow-500 fill-yellow-500" />
-         </div>
-      </div>
+      <button 
+        onClick={(e) => { e.stopPropagation(); onExpand(); }}
+        className="absolute top-4 right-4 z-20 bg-black/40 backdrop-blur-xl p-3 rounded-2xl border border-white/10 md:opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <Maximize2 size={16} className="text-white" />
+      </button>
+
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+           <div className="bg-yellow-500 p-4 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.5)]">
+              <Play size={24} className="text-black fill-black" />
+           </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -105,12 +107,11 @@ export default function DetalleVotacion() {
 
     async function fetchNominados() {
       setLoading(true)
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('clips') 
         .select('*')
         .eq('categoria_id', id)
       
-      if (error) console.error("Error cargando nominados:", error)
       if (data) setNominados(data as Nominado[])
       setLoading(false)
     }
@@ -120,10 +121,7 @@ export default function DetalleVotacion() {
   const handleLoginGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        queryParams: { prompt: 'select_account' },
-        redirectTo: `${window.location.origin}/votar/${id}`
-      }
+      options: { redirectTo: `${window.location.origin}/votar/${id}` }
     })
   }
 
@@ -136,12 +134,16 @@ export default function DetalleVotacion() {
       .insert({ user_id: user.id, clip_id: clipId, categoria_id: id })
 
     if (error) {
-      if (error.code === '23505') alert("Ya has votado en esta categoría anteriormente.")
-      else alert("Error: " + error.message)
+      if (error.code === '23505') {
+        alert("Ya has registrado tu voto en esta categoría.")
+      } else {
+        alert("Error: " + error.message)
+      }
       setVotandoId(null)
       return
     }
 
+    // Lógica de navegación automática
     const { data: categorias } = await supabase
       .from('categorias')
       .select('id')
@@ -150,114 +152,104 @@ export default function DetalleVotacion() {
     if (categorias) {
       const currentIdx = categorias.findIndex(cat => cat.id === id)
       const nextCat = categorias[currentIdx + 1]
+      
       if (nextCat) {
-        alert("¡Voto registrado! Pasamos a la siguiente categoría...")
         router.push(`/votar/${nextCat.id}`)
       } else {
-        alert("¡Felicidades! Has terminado de votar en todas las categorías.")
+        alert("¡Gracias por participar! Has completado todas las categorías.")
         router.push('/') 
       }
     }
     setVotandoId(null)
   }
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-        <Loader2 className="animate-spin text-yellow-500 mb-4" size={48} />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] animate-pulse text-slate-500">Sincronizando Urnas...</p>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+      <Loader2 className="animate-spin text-yellow-500" size={40} />
+      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">Preparando Candidatos</span>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 pb-20 selection:bg-yellow-500 selection:text-black font-sans">
-      <div className="max-w-7xl mx-auto">
-        
-        <div className="flex justify-between items-center mb-12">
-          <button 
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-slate-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-[0.3em]"
-          >
-            <ChevronLeft size={14} /> Volver al Menú
+    <div className="min-h-screen bg-[#05070a] text-white">
+      
+      {/* HEADER FIXO */}
+      <nav className="sticky top-0 z-[40] bg-[#05070a]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <button onClick={() => router.push('/')} className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
+            <span className="text-[10px] font-black uppercase tracking-widest">Regresar</span>
           </button>
           
-          {user && ADMIN_WHITELIST.includes(user.email) && (
-            <span className="text-[9px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full font-black uppercase tracking-widest">
-              Modo Admin Activo
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {user && ADMIN_WHITELIST.includes(user.email) && (
+              <span className="text-[8px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full font-black uppercase">Staff Mode</span>
+            )}
+            <button onClick={() => router.push('/')} className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+               <X size={18} />
+            </button>
+          </div>
         </div>
+      </nav>
 
-        <header className="mb-20 text-center">
-          <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter mb-4 leading-none">
-            CATEGORÍA <span className="text-yellow-500 italic">WSP</span>
+      <div className="max-w-2xl mx-auto p-6 pt-12">
+        <header className="mb-16 text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="bg-yellow-500/10 p-3 rounded-2xl border border-yellow-500/20">
+              <Award className="text-yellow-500" size={24} />
+            </div>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-[0.8]">
+            VOTO <span className="text-yellow-500">WSP</span>
           </h1>
-          <div className="h-1 w-24 bg-yellow-500 mx-auto mb-6"></div>
-          <p className="text-slate-500 text-[10px] md:text-xs max-w-xl mx-auto uppercase tracking-[0.5em] font-bold leading-loose">
-            Analiza el contenido y elige quién merece el trofeo oficial 2026.
-          </p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-black">Selecciona con sabiduría</p>
         </header>
 
-        <div className={`grid gap-10 ${
-          nominados.length > 0 && nominados[0].tipo === 'texto' 
-          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
-          : 'grid-cols-1 lg:grid-cols-2'
-        }`}>
+        {/* LISTA DE NOMINADOS */}
+        <div className="space-y-12">
           {nominados.map((item) => (
-            <div 
-              key={item.id} 
-              className="group relative bg-slate-900/40 rounded-[3rem] overflow-hidden border border-white/5 hover:border-yellow-500/30 transition-all duration-700 flex flex-col shadow-2xl"
-            >
-              <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
+            <div key={item.id} className="group bg-slate-900/20 rounded-[3rem] overflow-hidden border border-white/5 flex flex-col hover:border-white/10 transition-all shadow-2xl">
+              
+              <div className="relative aspect-video w-full overflow-hidden bg-black">
                 {item.tipo === 'video' ? (
-                  <VideoPlayer src={item.url_media} titulo={item.titulo} />
+                  <VideoPlayer src={item.url_media} onExpand={() => setExpandedMedia(item)} />
                 ) : item.tipo === 'foto' ? (
-                    <img 
-                      src={item.url_media} 
-                      className="w-full h-full object-contain p-4 transition-transform duration-1000 group-hover:scale-105" 
-                      alt={item.titulo}
-                    />
+                  <img 
+                    src={item.url_media} 
+                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-700" 
+                    onClick={() => setExpandedMedia(item)} 
+                    alt={item.titulo}
+                  />
                 ) : (
-                  <div className="w-full h-full p-12 flex items-center justify-center text-center bg-slate-900/20">
-                     <p className="text-2xl font-serif italic text-yellow-500/80 leading-snug">"{item.url_media}"</p>
+                  <div className="w-full h-full p-12 flex items-center justify-center text-center bg-gradient-to-br from-slate-900 to-black">
+                    <p className="text-2xl font-serif italic text-yellow-500/90 leading-relaxed">"{item.url_media}"</p>
                   </div>
-                )}
-                
-                {item.tipo !== 'texto' && (
-                  <button 
-                    onClick={() => setExpandedMedia(item)}
-                    className="absolute top-6 right-6 bg-black/80 p-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-yellow-500 hover:text-black border border-white/10 z-30"
-                  >
-                    <Maximize2 size={18} />
-                  </button>
                 )}
               </div>
 
-              <div className="p-10 flex-1 flex flex-col justify-between bg-gradient-to-b from-transparent to-black/40">
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-[1px] w-6 bg-yellow-500/50"></div>
-                    <span className="text-yellow-500 text-[9px] font-black uppercase tracking-[0.4em]">Candidato Oficial</span>
-                  </div>
-                  <h3 className="text-4xl font-black uppercase italic tracking-tighter leading-none group-hover:text-yellow-500 transition-colors">
-                    {item.titulo}
-                  </h3>
-                </div>
+              <div className="p-10 flex flex-col items-center text-center">
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em] mb-3">Candidato Oficial</span>
+                <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter mb-10 group-hover:text-yellow-500 transition-colors">{item.titulo}</h3>
                 
                 {!user ? (
-                  <button onClick={handleLoginGoogle} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] bg-white text-black hover:bg-yellow-500 transition-all flex items-center justify-center gap-3 text-[10px]">
-                    <LogIn size={16} /> Identificarse para votar
+                  <button onClick={handleLoginGoogle} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] bg-white text-black text-[11px] flex items-center justify-center gap-3 hover:bg-yellow-500 transition-all active:scale-95 shadow-xl">
+                    <LogIn size={18} /> Iniciar sesión para votar
                   </button>
                 ) : (
                   <button 
                     onClick={() => votar(item.id)}
                     disabled={votandoId !== null}
-                    className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] transition-all text-[10px] flex items-center justify-center gap-3
-                      ${votandoId === item.id ? 'bg-slate-800 text-slate-600' : 'bg-white text-black hover:bg-yellow-500 active:scale-95 shadow-2xl'}
-                    `}
+                    className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl ${
+                      votandoId === item.id 
+                      ? 'bg-slate-800 text-slate-500' 
+                      : 'bg-white text-black hover:bg-yellow-500'
+                    }`}
                   >
-                    {votandoId === item.id ? <Loader2 className="animate-spin" size={18} /> : <><CheckCircle2 size={18} strokeWidth={3} /> Confirmar Voto</>}
+                    {votandoId === item.id ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <><CheckCircle2 size={20} /> Confirmar Voto</>
+                    )}
                   </button>
                 )}
               </div>
@@ -266,40 +258,32 @@ export default function DetalleVotacion() {
         </div>
       </div>
 
-      {/* MODAL DE EXPANSIÓN */}
+      {/* MODAL FULLSCREEN */}
       {expandedMedia && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-300"
-          onClick={() => setExpandedMedia(null)}
-        >
-          <button className="absolute top-6 right-6 md:top-10 md:right-10 text-white/50 hover:text-white transition-all z-[110]">
-            <X size={48} />
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 md:p-10" onClick={() => setExpandedMedia(null)}>
+          <button className="absolute top-8 right-8 text-white/40 hover:text-white transition-colors bg-white/5 p-4 rounded-full">
+            <X size={32} />
           </button>
           
-          <div className="relative max-w-6xl w-full max-h-full flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-            {expandedMedia.tipo === 'video' ? (
-              <video 
-                src={expandedMedia.url_media} 
-                className="w-full h-auto max-h-[80vh] rounded-3xl shadow-[0_0_100px_rgba(234,179,8,0.2)] border border-white/10"
-                controls
-                autoPlay
-              />
-            ) : (
-              <img 
-                src={expandedMedia.url_media} 
-                className="w-full h-auto max-h-[80vh] object-contain rounded-3xl"
-                alt={expandedMedia.titulo}
-              />
-            )}
-            <h2 className="mt-8 text-2xl md:text-5xl font-black uppercase italic text-yellow-500 tracking-tighter">
-              {expandedMedia.titulo}
-            </h2>
+          <div className="w-full max-w-5xl space-y-8" onClick={(e) => e.stopPropagation()}>
+            <div className="rounded-[2rem] overflow-hidden shadow-[0_0_100px_rgba(234,179,8,0.2)] border border-white/10 bg-black">
+              {expandedMedia.tipo === 'video' ? (
+                <video src={expandedMedia.url_media} className="w-full max-h-[70vh] object-contain" controls autoPlay />
+              ) : (
+                <img src={expandedMedia.url_media} className="w-full h-auto max-h-[70vh] object-contain mx-auto" alt="Expanded view" />
+              )}
+            </div>
+            <div className="text-center">
+              <h2 className="text-4xl md:text-6xl font-black uppercase italic text-yellow-500 tracking-tighter drop-shadow-2xl">
+                {expandedMedia.titulo}
+              </h2>
+            </div>
           </div>
         </div>
       )}
 
-      <footer className="mt-32 text-center opacity-20 border-t border-white/5 pt-10">
-        <p className="text-[9px] tracking-[1.2em] uppercase font-black">WSP Awards Ceremonial System v2.0</p>
+      <footer className="py-32 text-center">
+        <p className="text-[10px] tracking-[1.2em] uppercase font-black text-white/10">WSP AWARDS 2026</p>
       </footer>
     </div>
   )
