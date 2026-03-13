@@ -3,6 +3,14 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { PlusCircle, Trash2, LayoutDashboard, Save, FolderPlus, Loader2, Upload, Film, Eye, EyeOff } from 'lucide-react'
 
+// 1. LISTA DE ADMINISTRADORES ACTUALIZADA
+const ADMIN_WHITELIST = [
+  "j.luisestrada98@gmail.com", 
+  "indira.cachay9@gmail.com",
+  "thesoul986@gmail.com",
+  "elviscocho1998op@gmail.com"
+];
+
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [categorias, setCategorias] = useState<any[]>([])
@@ -12,8 +20,6 @@ export default function AdminPage() {
   const [nuevaCat, setNuevaCat] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [resultadosPublicos, setResultadosPublicos] = useState(false);
-  
-  const ADMIN_EMAIL = "j.luisestrada98@gmail.com"
 
   const [form, setForm] = useState({
     titulo: '',
@@ -72,7 +78,6 @@ export default function AdminPage() {
 
     let finalUrl = form.url_media
 
-    // LOGICA DE CARGA: Si es texto, usamos el campo url_media para guardar el texto directamente
     if (form.tipo !== 'texto' && file) {
       const fileExt = file.name.split('.').pop()
       const fileName = `${Math.random()}.${fileExt}`
@@ -115,12 +120,14 @@ export default function AdminPage() {
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white font-black uppercase tracking-[0.3em] animate-pulse">Verificando Credenciales...</div>
 
-  if (!user || user.email !== ADMIN_EMAIL) {
+  // 2. CORRECCIÓN CRÍTICA: Ahora verifica si el correo está en la lista permitida
+  if (!user || !ADMIN_WHITELIST.includes(user.email)) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-10 text-center">
         <div className="bg-slate-900 p-12 rounded-[3rem] border border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.1)]">
           <h1 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-red-500">Acceso Denegado</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm text-balance">Esta zona es exclusiva para el organizador WSP.</p>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm text-balance">Esta zona es exclusiva para los organizadores WSP.</p>
+          <p className="text-slate-700 text-[10px] mt-4 font-mono">ID: {user?.email || "No identificado"}</p>
         </div>
       </div>
     )
@@ -249,7 +256,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* CARGA DINÁMICA: ARCHIVO O TEXTO */}
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] ml-2 block">
                 {form.tipo === 'texto' ? 'Contenido del Texto' : 'Archivo Multimedia'}

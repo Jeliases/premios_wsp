@@ -16,7 +16,9 @@ import {
 const ADMIN_WHITELIST = [
   "j.luisestrada98@gmail.com", 
   "indira.cachay9@gmail.com",
-  "thesoul986@gmail.com"
+  "thesoul986@gmail.com",
+  "elviscocho1998op@gmail.com"
+
 ];
 
 interface Nominado {
