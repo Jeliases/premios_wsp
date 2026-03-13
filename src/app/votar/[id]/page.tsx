@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
 import { CheckCircle2, Play, Image as ImageIcon, Loader2, LogIn } from 'lucide-react'
 
-// Estructura de datos
 interface Nominado {
   id: string;
   titulo: string;
@@ -21,14 +20,12 @@ export default function DetalleVotacion() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    // 1. Verificamos sesión de usuario
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
     }
     checkUser()
 
-    // 2. Cargamos nominados de la categoría
     async function fetchNominados() {
       const { data, error } = await supabase
         .from('clips') 
@@ -42,14 +39,18 @@ export default function DetalleVotacion() {
     if (id) fetchNominados()
   }, [id])
 
-  // LOGIN CON GOOGLE (Facilongo)
   const handleLoginGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+    console.log("Iniciando autenticacion con Google")
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + `/votar/${id}`
+        queryParams: {
+          prompt: 'select_account',
+        },
+        redirectTo: `${window.location.origin}/votar/${id}`
       }
     })
+    if (error) console.error("Error en login:", error.message)
   }
 
   const votar = async (clipId: string) => {
@@ -66,12 +67,12 @@ export default function DetalleVotacion() {
 
     if (error) {
       if (error.code === '23505') {
-        alert("❌ Ya has registrado un voto en esta categoría.")
+        alert("Ya has registrado un voto en esta categoria.")
       } else {
-        alert("Hubo un error: " + error.message)
+        alert("Error al procesar voto: " + error.message)
       }
     } else {
-      alert("✨ ¡Voto procesado con éxito! Gracias por apoyar a la comunidad.")
+      alert("Voto procesado con exito.")
     }
     
     setVotandoId(null)
@@ -93,11 +94,10 @@ export default function DetalleVotacion() {
           ELIMINATORIA <span className="text-yellow-500 underline decoration-white/20">WSP</span>
         </h1>
         <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto uppercase tracking-wide font-light">
-          Analiza el contenido y elige quién merece el trofeo esta temporada.
+          Analiza el contenido y elige quien merece el trofeo esta temporada.
         </p>
       </header>
 
-      {/* Grid inteligente según el contenido */}
       <div className={`grid gap-8 ${
         nominados.length > 0 && nominados[0].tipo === 'texto' 
         ? 'grid-cols-2 md:grid-cols-4' 
@@ -108,7 +108,6 @@ export default function DetalleVotacion() {
             key={item.id} 
             className="group relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 hover:border-yellow-500/60 transition-all duration-500 shadow-2xl flex flex-col"
           >
-            {/* CONTENIDO VISUAL */}
             <div className="relative aspect-video w-full overflow-hidden bg-black">
               {item.tipo === 'video' ? (
                 <video 
@@ -133,7 +132,6 @@ export default function DetalleVotacion() {
                 </div>
               )}
               
-              {/* Overlay Play para Videos */}
               {item.tipo === 'video' && (
                 <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md p-2 rounded-lg pointer-events-none group-hover:hidden transition-all">
                   <Play size={16} className="text-yellow-500 fill-yellow-500" />
@@ -141,7 +139,6 @@ export default function DetalleVotacion() {
               )}
             </div>
 
-            {/* CUERPO DE LA TARJETA */}
             <div className="p-8 bg-gradient-to-b from-slate-900/50 to-black flex-1 flex flex-col justify-between">
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
@@ -153,7 +150,6 @@ export default function DetalleVotacion() {
                 </h3>
               </div>
               
-              {/* BOTÓN INTELIGENTE (LOGIN O VOTO) */}
               {!user ? (
                 <button 
                   onClick={handleLoginGoogle}
@@ -186,14 +182,13 @@ export default function DetalleVotacion() {
               )}
             </div>
 
-            {/* EFECTO DE LUZ (SHINE) AL PASAR EL MOUSE */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
           </div>
         ))}
       </div>
 
       <footer className="mt-20 border-t border-slate-800 pt-10 text-center">
-        <p className="text-slate-500 text-sm tracking-[0.5em] uppercase">Votación Oficial Premios WSP 2026</p>
+        <p className="text-slate-500 text-sm tracking-[0.5em] uppercase">Votacion Oficial Premios WSP 2026</p>
       </footer>
     </div>
   )

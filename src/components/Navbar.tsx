@@ -24,11 +24,13 @@ export default function Navbar() {
     }
   }, [])
 
-  const handleLogin = async () => {
-    // Puedes cambiar 'discord' por 'google' según prefieras
+const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: 'discord',
+      provider: 'google',
       options: {
+        queryParams: {
+          prompt: 'select_account',
+        },
         redirectTo: window.location.origin
       }
     })
