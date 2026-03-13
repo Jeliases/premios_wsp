@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { 
@@ -10,7 +10,8 @@ import {
   Maximize2, 
   X, 
   ChevronLeft,
-  Volume2
+  Volume2,
+  VolumeX
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -18,7 +19,6 @@ const ADMIN_WHITELIST = [
   "indira.cachay9@gmail.com",
   "thesoul986@gmail.com",
   "elviscocho1998op@gmail.com"
-
 ];
 
 interface Nominado {
@@ -27,6 +27,63 @@ interface Nominado {
   url_media: string;
   tipo: 'video' | 'foto' | 'texto';
   categoria_id: string;
+}
+
+// COMPONENTE DE VIDEO OPTIMIZADO PARA MÓVIL
+function VideoPlayer({ src, titulo }: { src: string, titulo: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+
+  const toggleAudio = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (videoRef.current) {
+      const isNowMuted = !videoRef.current.muted;
+      videoRef.current.muted = isNowMuted;
+      setMuted(isNowMuted);
+      if (!isNowMuted) videoRef.current.play();
+    }
+  };
+
+  return (
+    <div className="relative w-full h-full group overflow-hidden">
+      <video 
+        ref={videoRef}
+        src={src} 
+        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+        muted={muted}
+        loop
+        autoPlay
+        playsInline // CRÍTICO PARA IPHONE
+        onClick={toggleAudio}
+      />
+      
+      {/* Botón de Sonido Flotante */}
+      <button 
+        onClick={toggleAudio}
+        className="absolute bottom-4 right-4 z-20 bg-black/70 backdrop-blur-xl p-3 rounded-2xl border border-white/10 hover:bg-yellow-500 transition-all active:scale-90"
+      >
+        {muted ? (
+          <div className="flex items-center gap-2">
+            <VolumeX size={16} className="text-red-500" />
+            <span className="text-[9px] font-black uppercase text-white pr-1">Sin Sonido</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Volume2 size={16} className="text-green-500" />
+            <span className="text-[9px] font-black uppercase text-white pr-1">Con Sonido</span>
+          </div>
+        )}
+      </button>
+
+      {/* Indicador Play inicial */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:hidden transition-all">
+         <div className="bg-yellow-500/20 p-4 rounded-full backdrop-blur-sm border border-yellow-500/50">
+            <Play size={24} className="text-yellow-500 fill-yellow-500" />
+         </div>
+      </div>
+    </div>
+  );
 }
 
 export default function DetalleVotacion() {
@@ -154,27 +211,7 @@ export default function DetalleVotacion() {
             >
               <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
                 {item.tipo === 'video' ? (
-                  <>
-                    <video 
-                      src={item.url_media} 
-                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.muted = false;
-                        e.currentTarget.play();
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.pause();
-                        e.currentTarget.currentTime = 0;
-                        e.currentTarget.muted = true;
-                      }}
-                      muted
-                      loop
-                      playsInline
-                    />
-                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                       <Volume2 size={14} className="text-yellow-500" />
-                    </div>
-                  </>
+                  <VideoPlayer src={item.url_media} titulo={item.titulo} />
                 ) : item.tipo === 'foto' ? (
                     <img 
                       src={item.url_media} 
@@ -190,16 +227,10 @@ export default function DetalleVotacion() {
                 {item.tipo !== 'texto' && (
                   <button 
                     onClick={() => setExpandedMedia(item)}
-                    className="absolute top-6 right-6 bg-black/80 p-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-yellow-500 hover:text-black border border-white/10 z-10"
+                    className="absolute top-6 right-6 bg-black/80 p-3 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-yellow-500 hover:text-black border border-white/10 z-30"
                   >
                     <Maximize2 size={18} />
                   </button>
-                )}
-
-                {item.tipo === 'video' && (
-                  <div className="absolute bottom-6 left-6 bg-yellow-500 p-2 rounded-xl pointer-events-none group-hover:scale-0 transition-transform duration-500 shadow-lg">
-                    <Play size={14} className="text-black fill-black" />
-                  </div>
                 )}
               </div>
 
@@ -235,7 +266,7 @@ export default function DetalleVotacion() {
         </div>
       </div>
 
-      {/* MODAL DE EXPANSIÓN (VÍDEOS Y FOTOS COOL) */}
+      {/* MODAL DE EXPANSIÓN */}
       {expandedMedia && (
         <div 
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-300"
