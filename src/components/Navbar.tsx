@@ -1,12 +1,15 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Trophy, Vote, BarChart3, LogOut, User as UserIcon } from 'lucide-react'
+import { Trophy, Vote, BarChart3, LogOut, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
+
+  // TU CORREO DE ADMINISTRADOR
+  const ADMIN_EMAIL = 'j.luisestrada98@gmail.com'
 
   useEffect(() => {
     // 1. Verificar si hay usuario al cargar la página
@@ -24,7 +27,7 @@ export default function Navbar() {
     }
   }, [])
 
-const handleLogin = async () => {
+  const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -58,7 +61,6 @@ const handleLogin = async () => {
           <Link href="/resultados" className="flex items-center gap-2 hover:text-yellow-500 transition-colors group">
             <div className="relative">
               <BarChart3 size={18} />
-              {/* PUNTO DE "EN VIVO" PARA RESULTADOS */}
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </div>
@@ -70,15 +72,30 @@ const handleLogin = async () => {
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
-                <p className="text-[10px] text-slate-500 font-black uppercase">Bienvenido</p>
+              
+              {/* BOTÓN EXCLUSIVO PARA ADMIN */}
+              {user.email === ADMIN_EMAIL && (
+                <Link 
+                  href="/admin" 
+                  className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-yellow-500 hover:text-black transition-all group"
+                >
+                  <ShieldCheck size={14} className="group-hover:scale-110 transition-transform" />
+                  Admin Panel
+                </Link>
+              )}
+
+              <div className="hidden sm:block text-right border-l border-slate-800 pl-4">
+                <p className="text-[10px] text-slate-500 font-black uppercase">
+                  {user.email === ADMIN_EMAIL ? 'Organizador' : 'Votante'}
+                </p>
                 <p className="text-xs font-bold text-white truncate max-w-[100px]">
                   {user.user_metadata.full_name || user.email?.split('@')[0]}
                 </p>
               </div>
+
               <button 
                 onClick={handleLogout}
-                className="bg-slate-900 hover:bg-red-900/20 hover:text-red-500 p-2.5 rounded-full border border-slate-800 transition-all"
+                className="bg-slate-900 hover:bg-red-900/20 hover:text-red-500 p-2.5 rounded-full border border-slate-800 transition-all shadow-lg"
                 title="Cerrar Sesión"
               >
                 <LogOut size={20} />
