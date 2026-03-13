@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
-  "tu-correo-principal@gmail.com", 
+  "j.luisestrada98@gmail.com", 
   "indira.cachay9@gmail.com",
   "thesoul986@gmail.com"
 ];
