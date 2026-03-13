@@ -143,11 +143,11 @@ export default function DetalleVotacion() {
       return
     }
 
-    // Lógica de navegación automática
+    // NAVEGACIÓN AUTOMÁTICA
     const { data: categorias } = await supabase
       .from('categorias')
       .select('id')
-      .order('id', { ascending: true })
+      .order('orden', { ascending: true }) // Cambiado a orden para ser consistentes
 
     if (categorias) {
       const currentIdx = categorias.findIndex(cat => cat.id === id)
@@ -157,7 +157,7 @@ export default function DetalleVotacion() {
         router.push(`/votar/${nextCat.id}`)
       } else {
         alert("¡Gracias por participar! Has completado todas las categorías.")
-        router.push('/') 
+        router.push('/votar') // Regresa a la lista de categorías (completado)
       }
     }
     setVotandoId(null)
@@ -173,20 +173,26 @@ export default function DetalleVotacion() {
   return (
     <div className="min-h-screen bg-[#05070a] text-white">
       
-      {/* HEADER FIXO */}
-      <nav className="sticky top-0 z-[40] bg-[#05070a]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
+      {/* HEADER FIJO MEJORADO */}
+      <nav className="sticky top-0 z-[40] bg-[#05070a]/80 backdrop-blur-xl border-b border-white/5 px-4 md:px-6 py-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <button onClick={() => router.push('/')} className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+          <button 
+            onClick={() => router.push('/votar')} 
+            className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors shrink-0"
+          >
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
-            <span className="text-[10px] font-black uppercase tracking-widest">Regresar</span>
+            <span className="text-[10px] font-black uppercase tracking-widest hidden xs:block">Regresar</span>
           </button>
           
           <div className="flex items-center gap-3">
             {user && ADMIN_WHITELIST.includes(user.email) && (
               <span className="text-[8px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full font-black uppercase">Staff Mode</span>
             )}
-            <button onClick={() => router.push('/')} className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
-               <X size={18} />
+            <button 
+              onClick={() => router.push('/votar')} // <--- CORRECCIÓN: De '/' a '/votar'
+              className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors shrink-0"
+            >
+              <X size={18} />
             </button>
           </div>
         </div>
