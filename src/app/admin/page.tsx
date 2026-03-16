@@ -13,7 +13,8 @@ import {
   EyeOff,
   Plus,
   Users, // Icono para los votantes
-  X // Icono para cerrar
+  X, // Icono para cerrar
+  Filter // NUEVO: Icono para el filtro
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -37,6 +38,7 @@ export default function AdminPage() {
   const [votantes, setVotantes] = useState<any[]>([])
   const [mostrarVotantes, setMostrarVotantes] = useState(false)
   const [loadingVotantes, setLoadingVotantes] = useState(false)
+  const [filtroCategoria, setFiltroCategoria] = useState('') // NUEVO: Estado para filtrar
 
   const [form, setForm] = useState({
     titulo: '',
@@ -69,7 +71,7 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  // FUNCIÓN PARA VER QUIÉN VOTÓ
+  // FUNCIÓN PARA VER QUIÉN VOTÓ - ACTUALIZADA PARA TRAER CATEGORÍA
   const verVotantes = async () => {
     setLoadingVotantes(true)
     const { data, error } = await supabase
@@ -78,7 +80,10 @@ export default function AdminPage() {
         nombre_votante,
         email_votante,
         created_at,
-        clips ( titulo )
+        clips ( 
+          titulo,
+          categorias ( nombre ) 
+        )
       `)
       .order('created_at', { ascending: false });
 
@@ -90,6 +95,11 @@ export default function AdminPage() {
     }
     setLoadingVotantes(false)
   }
+
+  // Lógica de filtrado en tiempo real
+  const votantesFiltrados = filtroCategoria 
+    ? votantes.filter(v => v.clips?.categorias?.nombre === filtroCategoria)
+    : votantes;
 
   const crearCategoria = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -212,13 +222,29 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* MODAL / SECCIÓN DE VOTANTES */}
+        {/* MODAL / SECCIÓN DE VOTANTES - ACTUALIZADA CON FILTRO */}
         {mostrarVotantes && (
           <div className="bg-slate-900/90 border border-yellow-500/50 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <h2 className="text-yellow-500 font-black uppercase italic tracking-widest flex items-center gap-2">
                 <Users size={20} /> Historial de Inteligencia (Votos Realizados)
               </h2>
+
+              {/* SELECT DE FILTRADO */}
+              <div className="flex items-center gap-3 bg-black/50 p-3 rounded-2xl border border-white/10 w-full md:w-auto">
+                <Filter size={16} className="text-yellow-500" />
+                <select 
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  className="bg-transparent text-white text-[10px] font-black uppercase outline-none cursor-pointer pr-4"
+                >
+                  <option value="">Todas las categorías</option>
+                  {categorias.map(cat => (
+                    <option key={cat.id} value={cat.nombre} className="bg-slate-900">{cat.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
               <button onClick={() => setMostrarVotantes(false)} className="text-slate-500 hover:text-white transition-colors">
                 <X size={24} />
               </button>
@@ -227,6 +253,7 @@ export default function AdminPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-[9px] uppercase text-slate-500 border-b border-white/10 font-black tracking-widest">
+                    <th className="p-4">Categoría</th> {/* NUEVA COLUMNA */}
                     <th className="p-4">Votante</th>
                     <th className="p-4">Email</th>
                     <th className="p-4">Candidato Elegido</th>
@@ -234,17 +261,22 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="text-[11px] text-white font-bold">
-                  {votantes.map((v, i) => (
+                  {votantesFiltrados.map((v, i) => (
                     <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="p-4">
+                        <span className="text-yellow-500/50 text-[8px] uppercase font-black">
+                          {v.clips?.categorias?.nombre || 'General'}
+                        </span>
+                      </td>
                       <td className="p-4 uppercase italic text-yellow-500">{v.nombre_votante || 'Usuario Anónimo'}</td>
                       <td className="p-4 text-slate-400 font-mono text-[9px]">{v.email_votante}</td>
                       <td className="p-4 uppercase">{v.clips?.titulo || 'Desconocido'}</td>
                       <td className="p-4 text-slate-500 text-[9px]">{new Date(v.created_at).toLocaleString()}</td>
                     </tr>
                   ))}
-                  {votantes.length === 0 && (
+                  {votantesFiltrados.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="p-10 text-center text-slate-500 uppercase italic">No hay votos registrados todavía.</td>
+                      <td colSpan={5} className="p-10 text-center text-slate-500 uppercase italic">No se encontraron votos con este filtro.</td>
                     </tr>
                   )}
                 </tbody>
