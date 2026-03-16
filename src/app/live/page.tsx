@@ -14,7 +14,6 @@ export default function LiveGala() {
   const confettiIntervalRef = useRef<any>(null)
 
   useEffect(() => {
-
     // 🔹 NUEVO: leer estado actual al cargar
     const cargarEstadoInicial = async () => {
       const { data } = await supabase
@@ -94,9 +93,10 @@ export default function LiveGala() {
         conteo[a] > conteo[b] ? a : b
       )
 
+      // 🔹 MODIFICADO: Ahora traemos también tipo y url_media
       const { data: clip } = await supabase
         .from('clips')
-        .select('titulo')
+        .select('titulo, tipo, url_media')
         .eq('id', ganadorId)
         .single()
 
@@ -168,32 +168,58 @@ export default function LiveGala() {
         )}
 
         {faseTexto === 'real' && ganador && (
-          <div className="relative flex flex-col items-center justify-center min-h-screen py-20">
+          <div className="relative flex flex-col items-center justify-center min-h-screen py-10">
 
             <div className="absolute inset-0 bg-yellow-500/10 blur-[150px] animate-pulse rounded-full" />
 
-            <div className="relative animate-in zoom-in duration-700 space-y-8">
+            <div className="relative animate-in zoom-in duration-700 space-y-6 w-full flex flex-col items-center">
 
-              <h2 className="text-yellow-500 font-black italic text-3xl md:text-5xl uppercase tracking-[0.4em] drop-shadow-lg">
+              <h2 className="text-yellow-500 font-black italic text-2xl md:text-4xl uppercase tracking-[0.4em] drop-shadow-lg">
                 ¡GANADOR OFICIAL!
               </h2>
 
-              <p className="text-white/40 font-bold uppercase tracking-[0.8em] text-sm italic">
-                {categoria}
-              </p>
+              {/*  BLOQUE MULTIMEDIA AGREGADO */}
+              <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border-4 border-yellow-500/30 shadow-[0_0_50px_rgba(234,179,8,0.2)] bg-black">
+                {ganador.tipo === 'video' && (
+                  <video 
+                    src={ganador.url_media} 
+                    autoPlay 
+                    controls={false}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                {ganador.tipo === 'foto' && (
+                  <img 
+                    src={ganador.url_media} 
+                    className="w-full h-full object-contain"
+                    alt="Ganador"
+                  />
+                )}
+                {ganador.tipo === 'texto' && (
+                  <div className="w-full h-full flex items-center justify-center p-10 bg-gradient-to-br from-yellow-900/20 to-black">
+                     <p className="text-white font-black italic uppercase text-4xl md:text-6xl text-center">
+                        "{ganador.url_media}"
+                     </p>
+                  </div>
+                )}
+              </div>
+              {/* 🔹 FIN BLOQUE MULTIMEDIA 🔹 */}
 
-              <div className="py-10">
-               <h1 className="text-white font-black italic text-5xl md:text-8xl uppercase leading-none drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]">
+              <div className="text-center">
+                <p className="text-white/40 font-bold uppercase tracking-[0.8em] text-xs italic mb-2">
+                  {categoria}
+                </p>
+                <h1 className="text-white font-black italic text-4xl md:text-7xl uppercase leading-none drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]">
                   {ganador.titulo}
                 </h1>
               </div>
 
-              <div className="flex items-center justify-center gap-10 pt-10">
-                <div className="h-[1px] w-32 bg-yellow-500/50" />
-                <span className="text-yellow-500 font-black uppercase tracking-[1.5em] text-[10px]">
+              <div className="flex items-center justify-center gap-6 pt-4">
+                <div className="h-[1px] w-20 bg-yellow-500/50" />
+                <span className="text-yellow-500 font-black uppercase tracking-[1.5em] text-[8px]">
                   THE EXPERIENCE
                 </span>
-                <div className="h-[1px] w-32 bg-yellow-500/50" />
+                <div className="h-[1px] w-20 bg-yellow-500/50" />
               </div>
 
             </div>
