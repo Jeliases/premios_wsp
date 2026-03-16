@@ -42,6 +42,8 @@ export default function AdminPage() {
 
   const [revelandoId, setRevelandoId] = useState<string | null>(null);
 
+  const [mostrarPreview, setMostrarPreview] = useState(false);
+
   const [form, setForm] = useState({
     titulo: '',
     url_media: '',
@@ -108,6 +110,7 @@ export default function AdminPage() {
     } catch (error: any) {
       alert("Error al disparar: " + error.message);
       setRevelandoId(null);
+      setMostrarPreview(true);
     }
   };
 
@@ -463,6 +466,37 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+      {mostrarPreview && (
+
+  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+
+    <div className="relative w-[900px] h-[500px] bg-black rounded-3xl border border-yellow-500/30 shadow-2xl overflow-hidden">
+
+      <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
+
+        <span className="text-xs font-black uppercase text-yellow-500 tracking-widest">
+          Vista previa LIVE
+        </span>
+
+        <button
+          onClick={() => setMostrarPreview(false)}
+          className="text-slate-400 hover:text-white"
+        >
+          <X size={20}/>
+        </button>
+
+      </div>
+
+      <iframe
+        src="/live"
+        className="w-full h-full"
+      />
+
+    </div>
+
+  </div>
+
+)}
     </div>
   )
 }
