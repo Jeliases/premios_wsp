@@ -23,14 +23,16 @@ export default function LiveGala() {
           setCategoria(categoria_en_pantalla)
 
           if (estado_revelacion === 'activar_susto') {
-            // Pausar música de espera y ejecutar show
             if (audioEsperaRef.current) audioEsperaRef.current.pause()
             ejecutarSecuencia(categoria_activa)
           } else {
+            // Cuando vuelves a IDLE en el admin, reseteamos todo para la siguiente categoría
             setFaseTexto('ninguna')
             setGanador(null)
-            // Volver a poner música de espera si vuelve a idle
-            if (audioEsperaRef.current) audioEsperaRef.current.play().catch(() => {})
+            if (audioEsperaRef.current) {
+              audioEsperaRef.current.currentTime = 0
+              audioEsperaRef.current.play().catch(() => {})
+            }
           }
         }
       )
@@ -46,8 +48,10 @@ export default function LiveGala() {
       videoRef.current.play()
     }
 
+    // A los 2 segundos: "Ganador Expedition 33"
     setTimeout(() => { setFaseTexto('fake') }, 2000)
 
+    // Consultar ganador real
     const { data: votos } = await supabase.from('votos').select('clip_id').eq('categoria_id', catId)
     if (votos && votos.length > 0) {
       const conteo = votos.reduce((acc: any, v: any) => { acc[v.clip_id] = (acc[v.clip_id] || 0) + 1; return acc }, {})
@@ -56,25 +60,36 @@ export default function LiveGala() {
       setGanador(clip)
     }
 
+    // A los 7.8 segundos: REVELACIÓN FINAL Y LOOP
     setTimeout(() => {
       setFaseTexto('real')
-      confetti({ particleCount: 250, spread: 100, origin: { y: 0.5 }, colors: ['#EAB308', '#FFFFFF', '#4F46E5'] })
-    }, 7800) // Ajustado al momento del susto
+      
+      // Lanzar confeti varias veces para el efecto "Loop" de victoria
+      const duration = 15 * 1000;
+      const animationEnd = Date.now() + duration;
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval: any = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+        
+        confetti({
+          particleCount: 3,
+          angle: randomInRange(55, 125),
+          spread: randomInRange(50, 70),
+          origin: { y: 0.6 },
+          colors: ['#EAB308', '#FFFFFF']
+        });
+      }, 250);
+
+    }, 7800)
   }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center overflow-hidden text-white font-sans">
       
-      {/* Música de ambiente (Solo suena si el usuario hace un click previo) */}
       <audio ref={audioEsperaRef} loop src="https://assets.mixkit.co/music/preview/mixkit-cinematic-mystery-suspense-675.mp3" />
-
-      {/* FONTO ANIMADO DE ESPERA */}
-      {estado === 'idle' && (
-        <div className="absolute inset-0 opacity-30">
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/20 via-black to-black" />
-            <div className="h-full w-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800 via-transparent to-transparent animate-pulse" />
-        </div>
-      )}
 
       {/* VIDEO DEL SUSTO */}
       <video 
@@ -83,53 +98,51 @@ export default function LiveGala() {
         className={`fixed inset-0 w-full h-full object-cover z-50 transition-opacity duration-500 ${estado === 'activar_susto' ? 'opacity-100' : 'opacity-0'}`}
       />
 
-      {/* INTERFAZ DE TEXTOS */}
-      <div className="z-[60] text-center w-full max-w-5xl px-4">
+      {/* CAPA DE TEXTO Y CELEBRACIÓN */}
+      <div className="z-[60] text-center w-full max-w-7xl px-4">
         
-        {/* FASE 1: FAKE REVEAL */}
+        {/* FASE FAKE (Expedition) */}
         {faseTexto === 'fake' && (
-          <div className="animate-in zoom-in spin-in-1 duration-500">
-            <h2 className="text-yellow-500 font-black italic text-4xl uppercase tracking-[0.5em] mb-4 drop-shadow-[0_5px_15px_rgba(234,179,8,0.4)]">
-              {categoria}
-            </h2>
-            <h1 className="text-white font-black italic text-6xl md:text-[8rem] uppercase leading-none drop-shadow-2xl">
-              EL GANADOR ES: <br/> 
-              <span className="text-yellow-400 underline decoration-white/20">EXPEDITION 33</span>
+          <div className="animate-in fade-in zoom-in duration-500">
+            <h2 className="text-yellow-500 font-black italic text-4xl mb-4 tracking-[0.3em]">{categoria}</h2>
+            <h1 className="text-white font-black italic text-6xl md:text-9xl uppercase">
+              EL GANADOR ES: <br/> <span className="text-yellow-400">EXPEDITION 33</span>
             </h1>
           </div>
         )}
 
-        {/* FASE 2: REAL REVEAL */}
+        {/* FASE REAL (Bucle de Ganador) */}
         {faseTexto === 'real' && ganador && (
-          <div className="animate-in zoom-in duration-300">
-             <div className="inline-block px-8 py-2 bg-indigo-600 text-white font-black uppercase italic tracking-widest mb-6 skew-x-[-12deg]">
-                ¡RESULTADO OFICIAL!
-             </div>
-             <h2 className="text-white/50 font-black text-2xl uppercase tracking-[0.6em] mb-2 italic">
-               {categoria}
-            </h2>
-            <h1 className="text-white font-black italic text-8xl md:text-[12rem] uppercase leading-none drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
-              {ganador.titulo}
-            </h1>
+          <div className="relative">
+            {/* Resplandor de fondo para el ganador */}
+            <div className="absolute inset-0 bg-yellow-500/20 blur-[120px] rounded-full animate-pulse" />
+            
+            <div className="relative animate-in zoom-in duration-700">
+              <h2 className="text-yellow-500 font-black italic text-4xl uppercase tracking-[0.5em] mb-6 drop-shadow-lg">
+                ¡GANADOR OFICIAL {categoria}!
+              </h2>
+              
+              <div className="overflow-hidden py-4">
+                <h1 className="text-white font-black italic text-8xl md:text-[13rem] uppercase leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.3)] animate-bounce">
+                  {ganador.titulo}
+                </h1>
+              </div>
+
+              <div className="mt-10 flex items-center justify-center gap-8 opacity-50">
+                <div className="h-[2px] w-24 bg-gradient-to-r from-transparent to-white" />
+                <span className="font-black uppercase tracking-[1em] text-xs">The 2026 Experience</span>
+                <div className="h-[2px] w-24 bg-gradient-to-l from-transparent to-white" />
+              </div>
+            </div>
           </div>
         )}
 
-        {/* VISTA DE ESPERA PARA EL PÚBLICO */}
+        {/* SALA DE ESPERA (IDLE) */}
         {estado === 'idle' && (
-          <div className="relative group cursor-pointer" onClick={() => audioEsperaRef.current?.play()}>
-            <div className="mb-12 relative inline-block">
-                <div className="absolute inset-0 bg-yellow-500 blur-3xl opacity-20 group-hover:opacity-40 transition-opacity" />
-                <img src="/logo-premios.png" className="h-48 relative z-10 mx-auto" alt="Logo" />
-            </div>
-            <h2 className="text-6xl md:text-8xl font-black uppercase italic tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">
-              Sala de Espera
-            </h2>
-            <p className="text-yellow-500 font-bold uppercase tracking-[1em] text-sm animate-pulse">
-               • El presentador revelará los ganadores pronto •
-            </p>
-            <p className="mt-10 text-slate-600 text-[10px] uppercase font-black tracking-widest">
-                Haz clic en cualquier lugar para activar el sonido de la sala
-            </p>
+          <div className="animate-in fade-in duration-1000 flex flex-col items-center" onClick={() => audioEsperaRef.current?.play()}>
+             <img src="/logo-premios.png" className="h-40 mb-10 opacity-50" alt="" />
+             <h2 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white/80">SALA DE ESPERA</h2>
+             <p className="text-yellow-500 font-bold uppercase tracking-[0.8em] text-xs mt-4 animate-pulse">Preparando siguiente categoría...</p>
           </div>
         )}
       </div>
