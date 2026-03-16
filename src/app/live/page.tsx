@@ -14,6 +14,27 @@ export default function LiveGala() {
   const confettiIntervalRef = useRef<any>(null)
 
   useEffect(() => {
+
+    // 🔹 NUEVO: leer estado actual al cargar
+    const cargarEstadoInicial = async () => {
+      const { data } = await supabase
+        .from('config_gala')
+        .select('*')
+        .eq('id', 'main_config')
+        .single()
+
+      if (data) {
+        setEstado(data.estado_revelacion)
+        setCategoria(data.categoria_en_pantalla)
+
+        if (data.estado_revelacion === 'activar_susto') {
+          ejecutarSecuencia(data.categoria_activa)
+        }
+      }
+    }
+
+    cargarEstadoInicial()
+
     const channel = supabase
       .channel('cambios_gala')
       .on(
@@ -31,7 +52,6 @@ export default function LiveGala() {
 
             ejecutarSecuencia(categoria_activa)
           } else {
-            // IMPORTANTE: NO borrar el ganador
             if (audioEsperaRef.current) {
               audioEsperaRef.current.currentTime = 0
               audioEsperaRef.current.play().catch(() => {})
@@ -55,12 +75,10 @@ export default function LiveGala() {
       videoRef.current.play()
     }
 
-    // 2s aparece el fake
     setTimeout(() => {
       setFaseTexto('fake')
     }, 2000)
 
-    // calcular ganador real
     const { data: votos } = await supabase
       .from('votos')
       .select('clip_id')
@@ -85,7 +103,6 @@ export default function LiveGala() {
       setGanador(clip)
     }
 
-    // REVEAL REAL
     setTimeout(() => {
       setFaseTexto('real')
 
@@ -125,7 +142,6 @@ export default function LiveGala() {
         src="https://assets.mixkit.co/music/preview/mixkit-cinematic-mystery-suspense-675.mp3"
       />
 
-      {/* VIDEO */}
       <video
         ref={videoRef}
         loop
@@ -135,16 +151,15 @@ export default function LiveGala() {
         }`}
       />
 
-      {/* TEXTO */}
       <div className="z-[60] text-center w-full max-w-[90vw]">
 
         {faseTexto === 'fake' && (
           <div className="animate-in fade-in zoom-in duration-500 px-4">
-            <h2 className="text-yellow-500 font-black italic text-4xl mb-4 tracking-[0.3em] uppercase">
+            <h2 className="text-yellow-500 font-black italic text-3xl mb-4 tracking-[0.3em] uppercase">
               {categoria}
             </h2>
 
-            <h1 className="text-white font-black italic text-6xl md:text-9xl uppercase leading-tight">
+            <h1 className="text-white font-black italic text-5xl md:text-8xl uppercase leading-tight">
               EL GANADOR ES:
               <br />
               <span className="text-yellow-400">EXPEDITION 33</span>
@@ -190,7 +205,7 @@ export default function LiveGala() {
             className="animate-in fade-in duration-1000 flex flex-col items-center cursor-pointer"
             onClick={() => audioEsperaRef.current?.play()}
           >
-            <h2 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white opacity-20">
+            <h2 className="text-4xl md:text-7xl font-black uppercase italic tracking-tighter text-white opacity-20">
               GALA WSP
             </h2>
 
