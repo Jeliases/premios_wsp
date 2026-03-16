@@ -388,7 +388,7 @@ export default function AdminPage() {
                           id="file-input"
                           className="hidden"
                           onChange={(e) => setFile(e.target.files?.[0] || null)}
-                          accept={form.tipo === 'video' ? 'video/*' : 'image/*'}
+                          accept={form.tipo === 'video' ? 'video/*' : 'image/*,image/webp'}
                       />
                       <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-4 border-2 border-dashed border-white/5 rounded-2xl p-8 bg-black/40 hover:border-yellow-500/40 transition-all">
                           <Upload size={20} className="text-slate-500" />
