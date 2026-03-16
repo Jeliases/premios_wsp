@@ -280,7 +280,7 @@ export default function AdminPage() {
               >
                 <PlayCircle size={24} className={revelandoId === cat.id ? 'text-white' : 'text-indigo-500'} />
                 <span className="text-[10px] font-black uppercase text-white leading-tight text-left">{cat.nombre}</span>
-                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Disparar Susto</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">PUCHALE PLAY</span>
               </button>
             ))}
           </div>
