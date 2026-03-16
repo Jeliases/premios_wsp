@@ -11,7 +11,9 @@ import {
   Upload, 
   Eye, 
   EyeOff,
-  Plus // Importamos el icono Plus real
+  Plus,
+  Users, // Icono para los votantes
+  X // Icono para cerrar
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -30,6 +32,11 @@ export default function AdminPage() {
   const [nuevaCat, setNuevaCat] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [resultadosPublicos, setResultadosPublicos] = useState(false);
+  
+  // NUEVOS ESTADOS PARA VOTANTES
+  const [votantes, setVotantes] = useState<any[]>([])
+  const [mostrarVotantes, setMostrarVotantes] = useState(false)
+  const [loadingVotantes, setLoadingVotantes] = useState(false)
 
   const [form, setForm] = useState({
     titulo: '',
@@ -62,7 +69,28 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  // MEJORADO: Función de crear categoría con feedback
+  // FUNCIÓN PARA VER QUIÉN VOTÓ
+  const verVotantes = async () => {
+    setLoadingVotantes(true)
+    const { data, error } = await supabase
+      .from('votos')
+      .select(`
+        nombre_votante,
+        email_votante,
+        created_at,
+        clips ( titulo )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setVotantes(data)
+      setMostrarVotantes(true)
+    } else {
+      alert("Error al cargar votantes: " + error?.message)
+    }
+    setLoadingVotantes(false)
+  }
+
   const crearCategoria = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!nuevaCat.trim()) return;
@@ -70,7 +98,7 @@ export default function AdminPage() {
     const { error } = await supabase.from('categorias').insert([{ nombre: nuevaCat.trim() }])
     if (!error) {
       setNuevaCat('')
-      await loadData() // Forzamos recarga de la lista
+      await loadData()
     } else {
       alert("Error: " + error.message)
     }
@@ -163,15 +191,67 @@ export default function AdminPage() {
               </div>
           </div>
 
-          <button 
-              onClick={toggleResultados}
-              className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
-                  resultadosPublicos ? 'bg-red-500/10 text-red-500 border border-red-500/50' : 'bg-green-500 text-black shadow-lg shadow-green-500/20'
-              }`}
-          >
-              {resultadosPublicos ? <><EyeOff size={16}/> Ocultar Resultados</> : <><Eye size={16}/> Revelar Resultados</>}
-          </button>
+          <div className="flex flex-wrap gap-3">
+              {/* BOTÓN NUEVO: VER VOTANTES */}
+              <button 
+                onClick={verVotantes}
+                disabled={loadingVotantes}
+                className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 bg-white text-black hover:bg-yellow-500 shadow-lg"
+              >
+                {loadingVotantes ? <Loader2 className="animate-spin" size={16}/> : <><Users size={16}/> Ver Votantes</>}
+              </button>
+
+              <button 
+                  onClick={toggleResultados}
+                  className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
+                      resultadosPublicos ? 'bg-red-500/10 text-red-500 border border-red-500/50' : 'bg-green-500 text-black shadow-lg shadow-green-500/20'
+                  }`}
+              >
+                  {resultadosPublicos ? <><EyeOff size={16}/> Ocultar Resultados</> : <><Eye size={16}/> Revelar Resultados</>}
+              </button>
+          </div>
         </div>
+
+        {/* MODAL / SECCIÓN DE VOTANTES */}
+        {mostrarVotantes && (
+          <div className="bg-slate-900/90 border border-yellow-500/50 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-yellow-500 font-black uppercase italic tracking-widest flex items-center gap-2">
+                <Users size={20} /> Historial de Inteligencia (Votos Realizados)
+              </h2>
+              <button onClick={() => setMostrarVotantes(false)} className="text-slate-500 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="overflow-x-auto max-h-[400px] custom-scrollbar">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[9px] uppercase text-slate-500 border-b border-white/10 font-black tracking-widest">
+                    <th className="p-4">Votante</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Candidato Elegido</th>
+                    <th className="p-4">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[11px] text-white font-bold">
+                  {votantes.map((v, i) => (
+                    <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="p-4 uppercase italic text-yellow-500">{v.nombre_votante || 'Usuario Anónimo'}</td>
+                      <td className="p-4 text-slate-400 font-mono text-[9px]">{v.email_votante}</td>
+                      <td className="p-4 uppercase">{v.clips?.titulo || 'Desconocido'}</td>
+                      <td className="p-4 text-slate-500 text-[9px]">{new Date(v.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {votantes.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-10 text-center text-slate-500 uppercase italic">No hay votos registrados todavía.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* COLUMNA CATEGORÍAS */}
@@ -188,7 +268,6 @@ export default function AdminPage() {
                   placeholder="Nombre..."
                   className="flex-1 bg-black border border-white/10 p-4 rounded-xl text-xs outline-none focus:border-yellow-500 transition-all font-bold text-white min-w-0"
                 />
-                {/* BOTÓN REPARADO */}
                 <button 
                   type="button"
                   onClick={crearCategoria} 
