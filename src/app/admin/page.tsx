@@ -12,9 +12,10 @@ import {
   Eye, 
   EyeOff,
   Plus,
-  Users, // Icono para los votantes
-  X, // Icono para cerrar
-  Filter // NUEVO: Icono para el filtro
+  Users, 
+  X, 
+  Filter,
+  PlayCircle // Icono para la ceremonia
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -34,11 +35,13 @@ export default function AdminPage() {
   const [file, setFile] = useState<File | null>(null)
   const [resultadosPublicos, setResultadosPublicos] = useState(false);
   
-  // NUEVOS ESTADOS PARA VOTANTES
   const [votantes, setVotantes] = useState<any[]>([])
   const [mostrarVotantes, setMostrarVotantes] = useState(false)
   const [loadingVotantes, setLoadingVotantes] = useState(false)
-  const [filtroCategoria, setFiltroCategoria] = useState('') // NUEVO: Estado para filtrar
+  const [filtroCategoria, setFiltroCategoria] = useState('')
+
+  // Estado para controlar qué botón está cargando la revelación
+  const [revelandoId, setRevelandoId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     titulo: '',
@@ -71,7 +74,32 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  // FUNCIÓN PARA VER QUIÉN VOTÓ - ACTUALIZADA PARA TRAER CATEGORÍA
+  // FUNCIÓN PARA DISPARAR EL GANADOR CON EL FAKEOUT DE EXPEDITION 33
+  const dispararGanador = async (catId: string, catNombre: string) => {
+    setRevelandoId(catId);
+    
+    // 1. Activamos el fakeout en la base de datos
+    const { error } = await supabase
+      .from('config_gala')
+      .update({ 
+        categoria_en_pantalla: catNombre,
+        categoria_activa: catId,
+        mostrar_fakeout: true 
+      })
+      .eq('id', 'main_config');
+      
+    if(!error) {
+      // 2. Esperamos los 6.5 segundos del video antes de permitir otra acción
+      setTimeout(() => {
+        setRevelandoId(null);
+        alert(`Presentación de ${catNombre} completada.`);
+      }, 7000);
+    } else {
+      alert("Error: " + error.message);
+      setRevelandoId(null);
+    }
+  };
+
   const verVotantes = async () => {
     setLoadingVotantes(true)
     const { data, error } = await supabase
@@ -96,7 +124,6 @@ export default function AdminPage() {
     setLoadingVotantes(false)
   }
 
-  // Lógica de filtrado en tiempo real
   const votantesFiltrados = filtroCategoria 
     ? votantes.filter(v => v.clips?.categorias?.nombre === filtroCategoria)
     : votantes;
@@ -202,7 +229,6 @@ export default function AdminPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-              {/* BOTÓN NUEVO: VER VOTANTES */}
               <button 
                 onClick={verVotantes}
                 disabled={loadingVotantes}
@@ -222,7 +248,34 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* MODAL / SECCIÓN DE VOTANTES - ACTUALIZADA CON FILTRO */}
+        {/* --- NUEVA SECCIÓN: CONTROL DE REVELACIÓN EN VIVO --- */}
+        <div className="bg-gradient-to-br from-indigo-900/20 to-slate-900/40 p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+            <h2 className="text-sm font-black uppercase italic text-indigo-400 tracking-[0.2em]">Control de Ceremonia Live</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {categorias.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => dispararGanador(cat.id, cat.nombre)}
+                disabled={revelandoId !== null}
+                className={`relative group overflow-hidden p-6 rounded-[2rem] border transition-all duration-300 flex flex-col items-start gap-3 ${
+                  revelandoId === cat.id 
+                  ? 'bg-indigo-600 border-white animate-pulse' 
+                  : 'bg-black/40 border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5'
+                }`}
+              >
+                <PlayCircle size={24} className={revelandoId === cat.id ? 'text-white' : 'text-indigo-500'} />
+                <span className="text-[10px] font-black uppercase text-white leading-tight text-left">{cat.nombre}</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Disparar Susto</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* MODAL DE VOTANTES */}
         {mostrarVotantes && (
           <div className="bg-slate-900/90 border border-yellow-500/50 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -230,7 +283,6 @@ export default function AdminPage() {
                 <Users size={20} /> Historial de Inteligencia (Votos Realizados)
               </h2>
 
-              {/* SELECT DE FILTRADO */}
               <div className="flex items-center gap-3 bg-black/50 p-3 rounded-2xl border border-white/10 w-full md:w-auto">
                 <Filter size={16} className="text-yellow-500" />
                 <select 
@@ -253,7 +305,7 @@ export default function AdminPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-[9px] uppercase text-slate-500 border-b border-white/10 font-black tracking-widest">
-                    <th className="p-4">Categoría</th> {/* NUEVA COLUMNA */}
+                    <th className="p-4">Categoría</th>
                     <th className="p-4">Votante</th>
                     <th className="p-4">Email</th>
                     <th className="p-4">Candidato Elegido</th>
@@ -276,7 +328,7 @@ export default function AdminPage() {
                   ))}
                   {votantesFiltrados.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-10 text-center text-slate-500 uppercase italic">No se encontraron votos con este filtro.</td>
+                      <td colSpan={5} className="p-10 text-center text-slate-500 uppercase italic">No se encontraron votos.</td>
                     </tr>
                   )}
                 </tbody>
@@ -285,8 +337,8 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* SECCIÓN CATEGORÍAS Y FORMULARIO */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* COLUMNA CATEGORÍAS */}
           <div className="space-y-6">
             <div className="bg-slate-900/80 p-6 rounded-[2.5rem] border border-white/5">
               <h2 className="text-sm font-black mb-6 flex items-center gap-2 uppercase italic text-yellow-500">
@@ -318,7 +370,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* FORMULARIO NOMINADOS */}
           <div className="lg:col-span-2">
             <form onSubmit={guardarNominado} className="bg-slate-900/80 p-6 md:p-8 rounded-[2.5rem] border border-white/5 space-y-8 shadow-2xl">
               <h2 className="text-sm font-black flex items-center gap-2 uppercase italic text-yellow-500">
