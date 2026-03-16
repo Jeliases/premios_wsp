@@ -76,43 +76,44 @@ export default function AdminPage() {
   }
 
   // --- FUNCIÓN ACTUALIZADA SEGÚN TU SQL ---
-  const dispararGanador = async (catId: string, catNombre: string) => {
-    if (revelandoId) return;
-    setRevelandoId(catId);
+ const dispararGanador = async (catId: string, catNombre: string) => {
+  if (revelandoId) return;
+  setRevelandoId(catId);
 
-    try {
-      // 1. Enviamos la señal a la DB
-      const { error } = await supabase
+  try {
+
+    const { error } = await supabase
+      .from('config_gala')
+      .update({ 
+        estado_revelacion: 'activar_susto',
+        categoria_activa: catId,
+        categoria_en_pantalla: catNombre 
+      })
+      .eq('id', 'main_config');
+
+    if (error) throw error;
+
+    // Ejecuta igual aun el error
+    setMostrarPreview(true);
+
+    setTimeout(async () => {
+      await supabase
         .from('config_gala')
         .update({ 
-          estado_revelacion: 'activar_susto', // La señal que espera el Live
-          categoria_activa: catId,            // El ID para buscar al ganador
-          categoria_en_pantalla: catNombre 
+          estado_revelacion: 'idle',
+          categoria_activa: null 
         })
         .eq('id', 'main_config');
-        
-      if(error) throw error;
 
-      // 2. Esperamos el tiempo del video antes de permitir otro disparo
-      // y devolvemos la DB a estado normal (idle)
-      setTimeout(async () => {
-        await supabase
-          .from('config_gala')
-          .update({ 
-            estado_revelacion: 'idle', // Volvemos a esperar
-            categoria_activa: null 
-          })
-          .eq('id', 'main_config');
-          
-        setRevelandoId(null);
-      }, 10000); // 10 segundos de margen
-
-    } catch (error: any) {
-      alert("Error al disparar: " + error.message);
       setRevelandoId(null);
-      setMostrarPreview(true);
-    }
-  };
+    }, 10000);
+
+  } catch (error: any) {
+    alert("Error al disparar: " + error.message);
+    setRevelandoId(null);
+    setMostrarPreview(true);
+  }
+};
 
   const verVotantes = async () => {
     setLoadingVotantes(true)
