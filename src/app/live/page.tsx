@@ -168,7 +168,7 @@ export default function LiveGala() {
               </p>
 
               <div className="py-10">
-                <h1 className="text-white font-black italic text-7xl md:text-[14rem] uppercase leading-none drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
+               <h1 className="text-white font-black italic text-5xl md:text-8xl uppercase leading-none drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]">
                   {ganador.titulo}
                 </h1>
               </div>
