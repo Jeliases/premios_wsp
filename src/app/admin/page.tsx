@@ -77,25 +77,31 @@ export default function AdminPage() {
   // FUNCIÓN PARA DISPARAR EL GANADOR CON EL FAKEOUT DE EXPEDITION 33
   const dispararGanador = async (catId: string, catNombre: string) => {
     setRevelandoId(catId);
-    
-    // 1. Activamos el fakeout en la base de datos
+
+    // 1. Usamos 'estado_revelacion' para activar el video en la otra pantalla
+    // y 'categoria_activa' para saber de quién es el premio.
     const { error } = await supabase
       .from('config_gala')
       .update({ 
-        categoria_en_pantalla: catNombre,
-        categoria_activa: catId,
-        mostrar_fakeout: true 
+        estado_revelacion: 'activar_susto', // Esto le dirá a la otra pantalla: "¡DALE PLAY!"
+        categoria_activa: catId 
       })
       .eq('id', 'main_config');
       
     if(!error) {
-      // 2. Esperamos los 6.5 segundos del video antes de permitir otra acción
-      setTimeout(() => {
+      // 2. Simulamos el tiempo del video (7 seg) antes de liberar el botón
+      setTimeout(async () => {
+        // Opcional: Volver a estado normal automáticamente
+        await supabase
+          .from('config_gala')
+          .update({ estado_revelacion: 'normal' })
+          .eq('id', 'main_config');
+          
         setRevelandoId(null);
-        alert(`Presentación de ${catNombre} completada.`);
+        alert(`Susto de "${catNombre}" ejecutado correctamente.`);
       }, 7000);
     } else {
-      alert("Error: " + error.message);
+      alert("Error en DB: " + error.message);
       setRevelandoId(null);
     }
   };
