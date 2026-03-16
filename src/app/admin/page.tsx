@@ -79,31 +79,34 @@ export default function AdminPage() {
     setRevelandoId(catId);
 
     try {
-      // Usamos exactamente las columnas de tu CREATE TABLE
+      // 1. Enviamos la señal a la DB
       const { error } = await supabase
         .from('config_gala')
         .update({ 
-          estado_revelacion: 'activar_susto', // El disparador para el video
-          categoria_activa: catId,           // El ID para los cálculos
-          categoria_en_pantalla: catNombre   // El Nombre para mostrar en el overlay
+          estado_revelacion: 'activar_susto', // La señal que espera el Live
+          categoria_activa: catId,            // El ID para buscar al ganador
+          categoria_en_pantalla: catNombre 
         })
         .eq('id', 'main_config');
         
       if(error) throw error;
 
-      // Tiempo que dura el video de Expedition 33 (fakeout)
+      // 2. Esperamos el tiempo del video antes de permitir otro disparo
+      // y devolvemos la DB a estado normal (idle)
       setTimeout(async () => {
         await supabase
           .from('config_gala')
-          .update({ estado_revelacion: 'idle' }) // Volvemos al estado default de tu SQL
+          .update({ 
+            estado_revelacion: 'idle', // Volvemos a esperar
+            categoria_activa: null 
+          })
           .eq('id', 'main_config');
           
         setRevelandoId(null);
-        alert(`Secuencia de "${catNombre}" disparada con éxito.`);
-      }, 8000);
+      }, 10000); // 10 segundos de margen
 
     } catch (error: any) {
-      alert("Error de Base de Datos: " + error.message);
+      alert("Error al disparar: " + error.message);
       setRevelandoId(null);
     }
   };
