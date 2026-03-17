@@ -6,24 +6,30 @@ import { ChevronRight, Sparkles, Trophy, Settings, PlayCircle } from 'lucide-rea
 export default function LandingPage() {
   const [timeLeft, setTimeLeft] = useState({ días: 0, horas: 0, min: 0, seg: 0 })
 
-  useEffect(() => {
-    const galaDate = new Date('2026-12-31T20:00:00').getTime()
-    const interval = setInterval(() => {
-      const now = new Date().getTime()
-      const distance = galaDate - now
-      if (distance < 0) {
-        clearInterval(interval)
-        return
-      }
-      setTimeLeft({
-        días: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        horas: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        min: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seg: Math.floor((distance % (1000 * 60)) / 1000)
-      })
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
+ useEffect(() => {
+
+  const galaDate = new Date('2026-03-27T00:00:00').getTime()
+
+  const interval = setInterval(() => {
+    const now = new Date().getTime()
+    const distance = galaDate - now
+
+    if (distance < 0) {
+      clearInterval(interval)
+      setTimeLeft({ días: 0, horas: 0, min: 0, seg: 0 })
+      return
+    }
+
+    setTimeLeft({
+      días: Math.floor(distance / (1000 * 60 * 60 * 24)),
+      horas: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+      min: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+      seg: Math.floor((distance % (1000 * 60)) / 1000)
+    })
+  }, 1000)
+
+  return () => clearInterval(interval)
+}, [])
 
   return (
     <div className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center overflow-hidden font-sans">
@@ -42,7 +48,7 @@ export default function LandingPage() {
         {/* ETIQUETA SUPERIOR: ADAPTACIÓN RITUAL */}
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-2 rounded-full mb-8 backdrop-blur-md">
           <div className="w-2 h-2 bg-yellow-500 rounded-full animate-ping" />
-          <span className="text-white text-[10px] font-black uppercase tracking-[0.5em]">Ritual de Votación Activo</span>
+          <span className="text-white text-[10px] font-black uppercase tracking-[0.5em]">PREMIOS WSP DEL INDIRISMO 2026</span>
         </div>
 
         {/* TÍTULO PRINCIPAL: MAHORAGA STYLE */}
@@ -103,7 +109,7 @@ export default function LandingPage() {
 
         {/* DECORACIÓN INFERIOR ESTILO SELLOS */}
         <div className="mt-24 grid grid-cols-3 gap-12 opacity-30">
-             {['ADAPTAR', 'EVOLUCIONAR', 'CONQUISTAR'].map((txt) => (
+             {['ADAPTAR', 'EVOLUCIONAR',].map((txt) => (
                <span key={txt} className="text-[10px] font-black tracking-[1em] uppercase italic">{txt}</span>
              ))}
         </div>
