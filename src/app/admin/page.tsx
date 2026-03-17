@@ -15,7 +15,10 @@ import {
   Users, 
   X, 
   Filter,
-  PlayCircle 
+  PlayCircle,
+  Film,
+  Image as ImageIcon,
+  Type
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -41,7 +44,6 @@ export default function AdminPage() {
   const [filtroCategoria, setFiltroCategoria] = useState('')
 
   const [revelandoId, setRevelandoId] = useState<string | null>(null);
-
   const [mostrarPreview, setMostrarPreview] = useState(false);
 
   const [form, setForm] = useState({
@@ -75,45 +77,40 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  // --- FUNCIÓN ACTUALIZADA SEGÚN TU SQL ---
- const dispararGanador = async (catId: string, catNombre: string) => {
-  if (revelandoId) return;
-  setRevelandoId(catId);
+  const dispararGanador = async (catId: string, catNombre: string) => {
+    if (revelandoId) return;
+    setRevelandoId(catId);
 
-  try {
-
-    const { error } = await supabase
-      .from('config_gala')
-      .update({ 
-        estado_revelacion: 'activar_susto',
-        categoria_activa: catId,
-        categoria_en_pantalla: catNombre 
-      })
-      .eq('id', 'main_config');
-
-    if (error) throw error;
-
-    // Ejecuta igual aun el error
-    setMostrarPreview(true);
-
-    setTimeout(async () => {
-      await supabase
+    try {
+      const { error } = await supabase
         .from('config_gala')
         .update({ 
-          estado_revelacion: 'idle',
-          categoria_activa: null 
+          estado_revelacion: 'activar_susto',
+          categoria_activa: catId,
+          categoria_en_pantalla: catNombre 
         })
         .eq('id', 'main_config');
 
-      setRevelandoId(null);
-    }, 10000);
+      if (error) throw error;
+      setMostrarPreview(true);
 
-  } catch (error: any) {
-    alert("Error al disparar: " + error.message);
-    setRevelandoId(null);
-    setMostrarPreview(true);
-  }
-};
+      setTimeout(async () => {
+        await supabase
+          .from('config_gala')
+          .update({ 
+            estado_revelacion: 'idle',
+            categoria_activa: null 
+          })
+          .eq('id', 'main_config');
+        setRevelandoId(null);
+      }, 10000);
+
+    } catch (error: any) {
+      alert("Error al disparar: " + error.message);
+      setRevelandoId(null);
+      setMostrarPreview(true);
+    }
+  };
 
   const verVotantes = async () => {
     setLoadingVotantes(true)
@@ -146,7 +143,6 @@ export default function AdminPage() {
   const crearCategoria = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!nuevaCat.trim()) return;
-    
     const { error } = await supabase.from('categorias').insert([{ nombre: nuevaCat.trim() }])
     if (!error) {
       setNuevaCat('')
@@ -200,7 +196,7 @@ export default function AdminPage() {
 
     if (error) alert("Error: " + error.message)
     else {
-      setForm({ ...form, titulo: '', url_media: '' })
+      setForm({ ...form, titulo: '', url_media: '', tipo: 'video' })
       setFile(null)
       loadData()
     }
@@ -370,9 +366,25 @@ export default function AdminPage() {
 
           <div className="lg:col-span-2">
             <form onSubmit={guardarNominado} className="bg-slate-900/80 p-8 rounded-[2.5rem] border border-white/5 space-y-8 shadow-2xl">
-              <h2 className="text-sm font-black flex items-center gap-2 uppercase italic text-yellow-500">
-                <PlusCircle size={18} /> Añadir Nominado
-              </h2>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 className="text-sm font-black flex items-center gap-2 uppercase italic text-yellow-500">
+                  <PlusCircle size={18} /> Añadir Nominado
+                </h2>
+                
+                {/* SELECTOR DE TIPO (FOTO | VIDEO | TEXTO) RESTAURADO */}
+                <div className="grid grid-cols-3 gap-2 p-1 bg-black rounded-2xl border border-white/5">
+                  <button type="button" onClick={() => setForm({...form, tipo: 'video'})} className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[9px] font-black uppercase transition-all ${form.tipo === 'video' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
+                    <Film size={14}/> Video
+                  </button>
+                  <button type="button" onClick={() => setForm({...form, tipo: 'foto'})} className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[9px] font-black uppercase transition-all ${form.tipo === 'foto' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
+                    <ImageIcon size={14}/> Foto
+                  </button>
+                  <button type="button" onClick={() => setForm({...form, tipo: 'texto'})} className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[9px] font-black uppercase transition-all ${form.tipo === 'texto' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
+                    <Type size={14}/> Texto
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[9px] font-black uppercase text-slate-500 ml-2">Categoría</label>
@@ -402,6 +414,7 @@ export default function AdminPage() {
                 {form.tipo === 'texto' ? (
                   <textarea 
                     className="w-full bg-black border border-white/10 p-5 rounded-2xl text-xs text-white min-h-[120px] outline-none"
+                    placeholder="Escribe el texto aquí..."
                     value={form.url_media}
                     onChange={(e) => setForm({...form, url_media: e.target.value})}
                     required
@@ -412,12 +425,13 @@ export default function AdminPage() {
                           type="file" 
                           id="file-input"
                           className="hidden"
+                          accept={form.tipo === 'video' ? "video/*" : "image/png, image/jpeg, image/webp"}
                           onChange={(e) => setFile(e.target.files?.[0] || null)}
                       />
-                      <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-4 border-2 border-dashed border-white/5 rounded-2xl p-8 bg-black/40">
+                      <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-4 border-2 border-dashed border-white/5 rounded-2xl p-8 bg-black/40 hover:border-yellow-500/50 transition-all">
                           <Upload size={20} className="text-slate-500" />
-                          <span className="text-[10px] font-black uppercase text-slate-400">
-                              {file ? file.name : `Subir ${form.tipo}`}
+                          <span className="text-[10px] font-black uppercase text-slate-400 text-center">
+                              {file ? file.name : `Subir ${form.tipo === 'video' ? 'Video (MP4)' : 'Imagen (PNG, JPG, WEBP)'}`}
                           </span>
                       </label>
                   </div>
@@ -446,7 +460,7 @@ export default function AdminPage() {
                 <thead>
                     <tr className="text-slate-500 text-[9px] uppercase border-b border-white/5">
                       <th className="p-6">Categoría</th>
-                      <th className="p-6">Nominado</th>
+                      <th className="p-6">Nominado / Tipo</th>
                       <th className="p-6 text-right">Borrar</th>
                     </tr>
                 </thead>
@@ -454,7 +468,12 @@ export default function AdminPage() {
                     {nominados.map(n => (
                     <tr key={n.id} className="border-t border-white/5 hover:bg-white/[0.02]">
                         <td className="p-6"><span className="text-yellow-500 text-[9px] font-black uppercase">{n.categorias?.nombre}</span></td>
-                        <td className="p-6 font-bold uppercase italic text-white">{n.titulo}</td>
+                        <td className="p-6">
+                          <div className="flex flex-col">
+                            <span className="font-bold uppercase italic text-white">{n.titulo}</span>
+                            <span className="text-[8px] uppercase text-slate-500">{n.tipo}</span>
+                          </div>
+                        </td>
                         <td className="p-6 text-right">
                           <button onClick={() => borrarNominado(n.id)} className="text-slate-600 hover:text-red-500 transition-colors p-2">
                               <Trash2 size={18} />
@@ -468,36 +487,26 @@ export default function AdminPage() {
         </div>
       </div>
       {mostrarPreview && (
-
-  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-
-    <div className="relative w-[900px] h-[500px] bg-black rounded-3xl border border-yellow-500/30 shadow-2xl overflow-hidden">
-
-      <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
-
-        <span className="text-xs font-black uppercase text-yellow-500 tracking-widest">
-          Vista previa LIVE
-        </span>
-
-        <button
-          onClick={() => setMostrarPreview(false)}
-          className="text-slate-400 hover:text-white"
-        >
-          <X size={20}/>
-        </button>
-
-      </div>
-
-      <iframe
-        src="/live"
-        className="w-full h-full"
-      />
-
-    </div>
-
-  </div>
-
-)}
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative w-[900px] h-[500px] bg-black rounded-3xl border border-yellow-500/30 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
+              <span className="text-xs font-black uppercase text-yellow-500 tracking-widest">
+                Vista previa LIVE
+              </span>
+              <button
+                onClick={() => setMostrarPreview(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X size={20}/>
+              </button>
+            </div>
+            <iframe
+              src="/live"
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
