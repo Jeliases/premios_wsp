@@ -18,7 +18,8 @@ import {
   PlayCircle,
   Film,
   Image as ImageIcon,
-  Type
+  Type,
+  Search // 🔹 Nuevo icono para búsqueda
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -42,6 +43,10 @@ export default function AdminPage() {
   const [mostrarVotantes, setMostrarVotantes] = useState(false)
   const [loadingVotantes, setLoadingVotantes] = useState(false)
   const [filtroCategoria, setFiltroCategoria] = useState('')
+
+  // 🔹 NUEVOS ESTADOS PARA FILTRAR LA TABLA DE NOMINADOS
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroCatTabla, setFiltroCatTabla] = useState('')
 
   const [revelandoId, setRevelandoId] = useState<string | null>(null);
   const [mostrarPreview, setMostrarPreview] = useState(false);
@@ -76,6 +81,13 @@ export default function AdminPage() {
     if (catData) setCategorias(catData)
     if (nomData) setNominados(nomData)
   }
+
+  // 🔹 LÓGICA DE FILTRADO PARA LA TABLA
+  const nominadosFiltrados = nominados.filter(n => {
+    const coincideNombre = n.titulo.toLowerCase().includes(busqueda.toLowerCase())
+    const coincideCat = filtroCatTabla === '' || n.categorias?.nombre === filtroCatTabla
+    return coincideNombre && coincideCat
+  })
 
   const dispararGanador = async (catId: string, catNombre: string) => {
     if (revelandoId) return;
@@ -371,7 +383,7 @@ export default function AdminPage() {
                   <PlusCircle size={18} /> Añadir Nominado
                 </h2>
                 
-                {/* SELECTOR DE TIPO (FOTO | VIDEO | TEXTO) RESTAURADO */}
+                {/* SELECTOR DE TIPO RESTAURADO */}
                 <div className="grid grid-cols-3 gap-2 p-1 bg-black rounded-2xl border border-white/5">
                   <button type="button" onClick={() => setForm({...form, tipo: 'video'})} className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[9px] font-black uppercase transition-all ${form.tipo === 'video' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
                     <Film size={14}/> Video
@@ -449,12 +461,43 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* TABLA DE NOMINADOS */}
+        {/* 🔹 TABLA DE NOMINADOS CON FILTROS INTEGRADOS 🔹 */}
         <div className="bg-slate-900/80 rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl">
-          <div className="p-8 bg-black/50 border-b border-white/5 flex justify-between items-center">
+          <div className="p-8 bg-black/50 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Nominados Activos</h2>
-            <span className="text-[10px] font-black text-slate-500">Total: {nominados.length}</span>
+            
+            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+              {/* Buscador de Nombre */}
+              <div className="relative flex items-center bg-black rounded-2xl border border-white/10 px-4 py-2 focus-within:border-yellow-500 transition-all">
+                <Search size={14} className="text-slate-500" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar nominado..." 
+                  className="bg-transparent border-none text-[10px] font-bold text-white outline-none ml-3 w-full md:w-40"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+              </div>
+
+              {/* Filtro de Categoría */}
+              <div className="relative flex items-center bg-black rounded-2xl border border-white/10 px-4 py-2 focus-within:border-yellow-500 transition-all">
+                <Filter size={14} className="text-slate-500" />
+                <select 
+                  className="bg-transparent border-none text-[10px] font-bold text-white outline-none ml-3 cursor-pointer pr-4 uppercase"
+                  value={filtroCatTabla}
+                  onChange={(e) => setFiltroCatTabla(e.target.value)}
+                >
+                  <option value="">Todas las Categorías</option>
+                  {categorias.map(cat => (
+                    <option key={cat.id} value={cat.nombre} className="bg-slate-900">{cat.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <span className="text-[10px] font-black text-slate-500 italic">Resultados: {nominadosFiltrados.length}</span>
           </div>
+
           <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -465,37 +508,48 @@ export default function AdminPage() {
                     </tr>
                 </thead>
                 <tbody className="text-xs">
-                    {nominados.map(n => (
-                    <tr key={n.id} className="border-t border-white/5 hover:bg-white/[0.02]">
-                        <td className="p-6"><span className="text-yellow-500 text-[9px] font-black uppercase">{n.categorias?.nombre}</span></td>
-                        <td className="p-6">
-                          <div className="flex flex-col">
-                            <span className="font-bold uppercase italic text-white">{n.titulo}</span>
-                            <span className="text-[8px] uppercase text-slate-500">{n.tipo}</span>
-                          </div>
+                    {nominadosFiltrados.length > 0 ? (
+                      nominadosFiltrados.map(n => (
+                        <tr key={n.id} className="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
+                            <td className="p-6">
+                              <span className="text-yellow-500 text-[9px] font-black uppercase tracking-widest">{n.categorias?.nombre}</span>
+                            </td>
+                            <td className="p-6">
+                              <div className="flex flex-col">
+                                <span className="font-bold uppercase italic text-white text-sm">{n.titulo}</span>
+                                <span className="text-[8px] uppercase text-slate-500 tracking-[0.2em]">{n.tipo}</span>
+                              </div>
+                            </td>
+                            <td className="p-6 text-right">
+                              <button onClick={() => borrarNominado(n.id)} className="text-slate-600 hover:text-red-500 transition-colors p-2">
+                                  <Trash2 size={18} />
+                              </button>
+                            </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="p-20 text-center text-slate-600 font-black uppercase tracking-[0.3em] text-[10px]">
+                          No se encontraron nominados con esos criterios
                         </td>
-                        <td className="p-6 text-right">
-                          <button onClick={() => borrarNominado(n.id)} className="text-slate-600 hover:text-red-500 transition-colors p-2">
-                              <Trash2 size={18} />
-                          </button>
-                        </td>
-                    </tr>
-                    ))}
+                      </tr>
+                    )}
                 </tbody>
               </table>
           </div>
         </div>
       </div>
+
       {mostrarPreview && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="relative w-[900px] h-[500px] bg-black rounded-3xl border border-yellow-500/30 shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
-              <span className="text-xs font-black uppercase text-yellow-500 tracking-widest">
-                Vista previa LIVE
+              <span className="text-xs font-black uppercase text-yellow-500 tracking-widest flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> Vista previa LIVE
               </span>
               <button
                 onClick={() => setMostrarPreview(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white transition-colors"
               >
                 <X size={20}/>
               </button>
