@@ -8,13 +8,12 @@ export default function LiveGala() {
   const [ganador, setGanador] = useState<any>(null)
   const [categoria, setCategoria] = useState('')
   const [faseTexto, setFaseTexto] = useState<'ninguna' | 'fake' | 'real'>('ninguna')
-  
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioEsperaRef = useRef<HTMLAudioElement>(null)
   const confettiIntervalRef = useRef<any>(null)
 
   useEffect(() => {
-    // 🔹 NUEVO: leer estado actual al cargar
     const cargarEstadoInicial = async () => {
       const { data } = await supabase
         .from('config_gala')
@@ -93,7 +92,6 @@ export default function LiveGala() {
         conteo[a] > conteo[b] ? a : b
       )
 
-      // 🔹 MODIFICADO: Ahora traemos también tipo y url_media
       const { data: clip } = await supabase
         .from('clips')
         .select('titulo, tipo, url_media')
@@ -134,8 +132,11 @@ export default function LiveGala() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center overflow-hidden text-white font-sans">
-      
+    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black flex items-center justify-center overflow-hidden text-white font-sans relative">
+
+      {/* ✨ iluminación tipo escenario */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.08),transparent_70%)] pointer-events-none" />
+
       <audio
         ref={audioEsperaRef}
         loop
@@ -146,20 +147,21 @@ export default function LiveGala() {
         ref={videoRef}
         loop
         src="https://wybvfhlgezisfgpnrola.supabase.co/storage/v1/object/public/media/gano%20expedition.mp4"
-        className={`fixed inset-0 w-full h-full object-cover z-50 transition-opacity duration-500 ${
+        className={`fixed inset-0 w-full h-full object-cover z-50 transition-opacity duration-700 ${
           estado === 'activar_susto' ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
       <div className="z-[60] text-center w-full max-w-[90vw]">
 
+        {/* 🔥 FAKE GANADOR */}
         {faseTexto === 'fake' && (
-          <div className="animate-in fade-in zoom-in duration-500 px-4">
+          <div className="animate-in fade-in zoom-in duration-700 ease-out px-4">
             <h2 className="text-yellow-500 font-black italic text-3xl mb-4 tracking-[0.3em] uppercase">
               {categoria}
             </h2>
 
-            <h1 className="text-white font-black italic text-5xl md:text-8xl uppercase leading-tight">
+            <h1 className="text-white font-black italic text-5xl md:text-8xl uppercase leading-tight tracking-tight drop-shadow-[0_10px_40px_rgba(255,255,255,0.2)]">
               EL GANADOR ES:
               <br />
               <span className="text-yellow-400">EXPEDITION 33</span>
@@ -167,10 +169,14 @@ export default function LiveGala() {
           </div>
         )}
 
+        {/* 🏆 GANADOR REAL */}
         {faseTexto === 'real' && ganador && (
           <div className="relative flex flex-col items-center justify-center min-h-screen py-10">
 
-            <div className="absolute inset-0 bg-yellow-500/10 blur-[150px] animate-pulse rounded-full" />
+            {/* Glow elegante */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-[600px] h-[600px] bg-yellow-400/20 blur-[180px] rounded-full animate-pulse" />
+            </div>
 
             <div className="relative animate-in zoom-in duration-700 space-y-6 w-full flex flex-col items-center">
 
@@ -178,45 +184,51 @@ export default function LiveGala() {
                 ¡GANADOR OFICIAL!
               </h2>
 
-              {/*  BLOQUE MULTIMEDIA AGREGADO */}
-              <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border-4 border-yellow-500/30 shadow-[0_0_50px_rgba(234,179,8,0.2)] bg-black">
+              {/* 🎬 TARJETA PREMIUM */}
+              <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border border-yellow-400/30 shadow-[0_0_80px_rgba(234,179,8,0.25)] bg-black backdrop-blur-md relative">
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+
                 {ganador.tipo === 'video' && (
-                  <video 
-                    src={ganador.url_media} 
-                    autoPlay 
-                    controls={false}
+                  <video
+                    src={ganador.url_media}
+                    autoPlay
                     className="w-full h-full object-cover"
                   />
                 )}
+
                 {ganador.tipo === 'foto' && (
-                  <img 
-                    src={ganador.url_media} 
+                  <img
+                    src={ganador.url_media}
                     className="w-full h-full object-contain"
                     alt="Ganador"
                   />
                 )}
+
                 {ganador.tipo === 'texto' && (
                   <div className="w-full h-full flex items-center justify-center p-10 bg-gradient-to-br from-yellow-900/20 to-black">
-                     <p className="text-white font-black italic uppercase text-4xl md:text-6xl text-center">
-                        "{ganador.url_media}"
-                     </p>
+                    <p className="text-white font-black italic uppercase text-4xl md:text-6xl text-center">
+                      "{ganador.url_media}"
+                    </p>
                   </div>
                 )}
               </div>
-              {/* 🔹 FIN BLOQUE MULTIMEDIA 🔹 */}
 
+              {/* 🧾 INFO */}
               <div className="text-center">
                 <p className="text-white/40 font-bold uppercase tracking-[0.8em] text-xs italic mb-2">
                   {categoria}
                 </p>
-                <h1 className="text-white font-black italic text-4xl md:text-7xl uppercase leading-none drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]">
+
+                <h1 className="text-white font-black italic text-4xl md:text-7xl uppercase leading-none tracking-tight drop-shadow-[0_10px_60px_rgba(255,255,255,0.5)]">
                   {ganador.titulo}
                 </h1>
               </div>
 
+              {/* 🔹 separador */}
               <div className="flex items-center justify-center gap-6 pt-4">
                 <div className="h-[1px] w-20 bg-yellow-500/50" />
-                <span className="text-yellow-500 font-black uppercase tracking-[1.5em] text-[8px]">
+                <span className="text-yellow-400 font-bold uppercase tracking-[1.2em] text-[10px] opacity-80">
                   THE EXPERIENCE
                 </span>
                 <div className="h-[1px] w-20 bg-yellow-500/50" />
@@ -226,12 +238,13 @@ export default function LiveGala() {
           </div>
         )}
 
+        {/* ⏳ IDLE */}
         {estado === 'idle' && (
           <div
             className="animate-in fade-in duration-1000 flex flex-col items-center cursor-pointer"
             onClick={() => audioEsperaRef.current?.play()}
           >
-            <h2 className="text-4xl md:text-7xl font-black uppercase italic tracking-tighter text-white opacity-20">
+            <h2 className="text-4xl md:text-7xl font-black uppercase italic tracking-tight text-white/30 drop-shadow-lg">
               GALA WSP
             </h2>
 
