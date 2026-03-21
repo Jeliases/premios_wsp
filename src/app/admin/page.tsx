@@ -19,7 +19,9 @@ import {
   Film,
   Image as ImageIcon,
   Type,
-  Search // 🔹 Nuevo icono para búsqueda
+  Search,
+  Flame, // Icono para el evento especial
+  RefreshCcw // Icono para reset
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -44,7 +46,6 @@ export default function AdminPage() {
   const [loadingVotantes, setLoadingVotantes] = useState(false)
   const [filtroCategoria, setFiltroCategoria] = useState('')
 
-  // 🔹 NUEVOS ESTADOS PARA FILTRAR LA TABLA DE NOMINADOS
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatTabla, setFiltroCatTabla] = useState('')
 
@@ -82,7 +83,40 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  // 🔹 LÓGICA DE FILTRADO PARA LA TABLA
+  // --- LÓGICA DEL EVENTO ASRIEL ---
+  const dispararEventoAsriel = async () => {
+    const confirmar = confirm("🚨 ATENCIÓN: Estás a punto de iniciar el COMBATE FINAL. ¿Deseas transformar la Gala para todos los espectadores?");
+    if (!confirmar) return;
+
+    try {
+      const { error } = await supabase
+        .from('config_gala')
+        .update({ 
+          estado_revelacion: 'combate_asriel',
+          categoria_en_pantalla: 'EL FINAL DE TODO'
+        })
+        .eq('id', 'main_config');
+
+      if (error) throw error;
+      setMostrarPreview(true);
+      alert("Evento Asriel iniciado correctamente.");
+    } catch (error: any) {
+      alert("Error al iniciar evento: " + error.message);
+    }
+  };
+
+  const resetearGala = async () => {
+    if (!confirm("¿Resetear el estado de la gala a IDLE?")) return;
+    await supabase
+      .from('config_gala')
+      .update({ 
+        estado_revelacion: 'idle',
+        categoria_activa: null 
+      })
+      .eq('id', 'main_config');
+    setRevelandoId(null);
+  };
+
   const nominadosFiltrados = nominados.filter(n => {
     const coincideNombre = n.titulo.toLowerCase().includes(busqueda.toLowerCase())
     const coincideCat = filtroCatTabla === '' || n.categorias?.nombre === filtroCatTabla
@@ -271,6 +305,35 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* --- NUEVA SECCIÓN: EVENTO ESPECIAL ASRIEL --- */}
+        <div className="bg-gradient-to-r from-red-900/40 via-black to-red-900/40 p-8 rounded-[3rem] border border-red-500/40 shadow-[0_0_40px_rgba(220,38,38,0.15)] flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+                <div className="bg-red-600 p-4 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse">
+                    <Flame className="text-white" size={32} />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Evento de Final de Gala</h2>
+                    <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest">Inicia el combate contra Asriel Dreemurr</p>
+                </div>
+            </div>
+            
+            <div className="flex gap-4 w-full md:w-auto">
+                <button 
+                    onClick={dispararEventoAsriel}
+                    className="flex-1 md:flex-none bg-red-600 hover:bg-red-500 text-white font-black px-10 py-5 rounded-2xl uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-xl shadow-red-900/20"
+                >
+                    Iniciar Combate
+                </button>
+                <button 
+                    onClick={resetearGala}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-black p-5 rounded-2xl transition-all active:scale-95"
+                    title="Resetear a Idle"
+                >
+                    <RefreshCcw size={20} />
+                </button>
+            </div>
+        </div>
+
         {/* CONTROL DE CEREMONIA LIVE */}
         <div className="bg-gradient-to-br from-indigo-900/20 to-slate-900/40 p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
@@ -383,7 +446,6 @@ export default function AdminPage() {
                   <PlusCircle size={18} /> Añadir Nominado
                 </h2>
                 
-                {/* SELECTOR DE TIPO RESTAURADO */}
                 <div className="grid grid-cols-3 gap-2 p-1 bg-black rounded-2xl border border-white/5">
                   <button type="button" onClick={() => setForm({...form, tipo: 'video'})} className={`flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[9px] font-black uppercase transition-all ${form.tipo === 'video' ? 'bg-white text-black' : 'text-slate-500 hover:text-white'}`}>
                     <Film size={14}/> Video
@@ -461,13 +523,12 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* 🔹 TABLA DE NOMINADOS CON FILTROS INTEGRADOS 🔹 */}
+        {/* TABLA DE NOMINADOS */}
         <div className="bg-slate-900/80 rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl">
           <div className="p-8 bg-black/50 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Nominados Activos</h2>
             
             <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-              {/* Buscador de Nombre */}
               <div className="relative flex items-center bg-black rounded-2xl border border-white/10 px-4 py-2 focus-within:border-yellow-500 transition-all">
                 <Search size={14} className="text-slate-500" />
                 <input 
@@ -479,7 +540,6 @@ export default function AdminPage() {
                 />
               </div>
 
-              {/* Filtro de Categoría */}
               <div className="relative flex items-center bg-black rounded-2xl border border-white/10 px-4 py-2 focus-within:border-yellow-500 transition-all">
                 <Filter size={14} className="text-slate-500" />
                 <select 
@@ -494,8 +554,6 @@ export default function AdminPage() {
                 </select>
               </div>
             </div>
-
-            <span className="text-[10px] font-black text-slate-500 italic">Resultados: {nominadosFiltrados.length}</span>
           </div>
 
           <div className="overflow-x-auto">

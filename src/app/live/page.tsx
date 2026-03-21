@@ -2,13 +2,20 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import confetti from 'canvas-confetti'
+import BattleMain from '@/components/gala/battle' 
+import GlitchTransition from '@/components/gala/battle/GlitchTransition'
 
 export default function LiveGala() {
+  // --- ESTADOS ORIGINALES ---
   const [estado, setEstado] = useState('idle')
   const [ganador, setGanador] = useState<any>(null)
   const [categoria, setCategoria] = useState('')
   const [faseTexto, setFaseTexto] = useState<'ninguna' | 'fake' | 'real'>('ninguna')
+  
+  // --- ESTADOS NUEVOS (TRANSICIÓN ASRIEL) ---
+  const [mostrandoGlitch, setMostrandoGlitch] = useState(false)
 
+  // --- REFERENCIAS ---
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioEsperaRef = useRef<HTMLAudioElement>(null)
   const confettiIntervalRef = useRef<any>(null)
@@ -41,15 +48,28 @@ export default function LiveGala() {
         (payload) => {
           const { estado_revelacion, categoria_activa, categoria_en_pantalla } = payload.new
 
-          setEstado(estado_revelacion)
+          // --- LÓGICA DE TRANSICIÓN CON GLITCH (SUSTO) ---
+          if (estado_revelacion === 'combate_asriel') {
+            setMostrandoGlitch(true) 
+            if (audioEsperaRef.current) audioEsperaRef.current.pause()
+            if (confettiIntervalRef.current) clearInterval(confettiIntervalRef.current)
+            
+            setTimeout(() => {
+              setMostrandoGlitch(false)
+              setEstado(estado_revelacion)
+            }, 1500)
+          } else {
+            setEstado(estado_revelacion)
+          }
+
           setCategoria(categoria_en_pantalla)
 
           if (estado_revelacion === 'activar_susto') {
             if (confettiIntervalRef.current) clearInterval(confettiIntervalRef.current)
             if (audioEsperaRef.current) audioEsperaRef.current.pause()
-
             ejecutarSecuencia(categoria_activa)
-          } else {
+          } 
+          else if (estado_revelacion === 'idle') {
             if (audioEsperaRef.current) {
               audioEsperaRef.current.currentTime = 0
               audioEsperaRef.current.play().catch(() => {})
@@ -131,18 +151,31 @@ export default function LiveGala() {
     }, 7800)
   }
 
+  // --- RENDERIZADO PRIORITARIO ---
+  if (mostrandoGlitch) return <GlitchTransition />
+  
+  if (estado === 'combate_asriel') {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-1000">
+        <BattleMain />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black flex items-center justify-center overflow-hidden text-white font-sans relative">
 
       {/* ✨ iluminación tipo escenario */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.08),transparent_70%)] pointer-events-none" />
 
+      {/* Audio de Espera Suspense */}
       <audio
         ref={audioEsperaRef}
         loop
         src="https://assets.mixkit.co/music/preview/mixkit-cinematic-mystery-suspense-675.mp3"
       />
 
+      {/* Video de Fondo Susto/Revelación */}
       <video
         ref={videoRef}
         loop
@@ -152,15 +185,15 @@ export default function LiveGala() {
         }`}
       />
 
+      {/* CONTENIDO PRINCIPAL */}
       <div className="z-[60] text-center w-full max-w-[90vw]">
 
-        {/* 🔥 FAKE GANADOR */}
+        {/* --- SECCIÓN FAKE GANADOR --- */}
         {faseTexto === 'fake' && (
           <div className="animate-in fade-in zoom-in duration-700 ease-out px-4">
             <h2 className="text-yellow-500 font-black italic text-3xl mb-4 tracking-[0.3em] uppercase">
               {categoria}
             </h2>
-
             <h1 className="text-white font-black italic text-5xl md:text-8xl uppercase leading-tight tracking-tight drop-shadow-[0_10px_40px_rgba(255,255,255,0.2)]">
               EL GANADOR ES:
               <br />
@@ -169,42 +202,28 @@ export default function LiveGala() {
           </div>
         )}
 
-        {/* 🏆 GANADOR REAL */}
+        {/* --- SECCIÓN GANADOR REAL --- */}
         {faseTexto === 'real' && ganador && (
           <div className="relative flex flex-col items-center justify-center min-h-screen py-10">
-
             {/* Glow elegante */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-[600px] h-[600px] bg-yellow-400/20 blur-[180px] rounded-full animate-pulse" />
             </div>
 
             <div className="relative animate-in zoom-in duration-700 space-y-6 w-full flex flex-col items-center">
-
               <h2 className="text-yellow-500 font-black italic text-2xl md:text-4xl uppercase tracking-[0.4em] drop-shadow-lg">
                 ¡GANADOR OFICIAL!
               </h2>
 
               {/* 🎬 TARJETA PREMIUM */}
               <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border border-yellow-400/30 shadow-[0_0_80px_rgba(234,179,8,0.25)] bg-black backdrop-blur-md relative">
-
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-
                 {ganador.tipo === 'video' && (
-                  <video
-                    src={ganador.url_media}
-                    autoPlay
-                    className="w-full h-full object-cover"
-                  />
+                  <video src={ganador.url_media} autoPlay className="w-full h-full object-cover" />
                 )}
-
                 {ganador.tipo === 'foto' && (
-                  <img
-                    src={ganador.url_media}
-                    className="w-full h-full object-contain"
-                    alt="Ganador"
-                  />
+                  <img src={ganador.url_media} className="w-full h-full object-contain" alt="Ganador" />
                 )}
-
                 {ganador.tipo === 'texto' && (
                   <div className="w-full h-full flex items-center justify-center p-10 bg-gradient-to-br from-yellow-900/20 to-black">
                     <p className="text-white font-black italic uppercase text-4xl md:text-6xl text-center">
@@ -214,18 +233,17 @@ export default function LiveGala() {
                 )}
               </div>
 
-              {/* 🧾 INFO */}
+              {/* INFO GANADOR */}
               <div className="text-center">
                 <p className="text-white/40 font-bold uppercase tracking-[0.8em] text-xs italic mb-2">
                   {categoria}
                 </p>
-
                 <h1 className="text-white font-black italic text-4xl md:text-7xl uppercase leading-none tracking-tight drop-shadow-[0_10px_60px_rgba(255,255,255,0.5)]">
                   {ganador.titulo}
                 </h1>
               </div>
 
-              {/* 🔹 separador */}
+              {/* SEPARADOR THE EXPERIENCE */}
               <div className="flex items-center justify-center gap-6 pt-4">
                 <div className="h-[1px] w-20 bg-yellow-500/50" />
                 <span className="text-yellow-400 font-bold uppercase tracking-[1.2em] text-[10px] opacity-80">
@@ -233,12 +251,11 @@ export default function LiveGala() {
                 </span>
                 <div className="h-[1px] w-20 bg-yellow-500/50" />
               </div>
-
             </div>
           </div>
         )}
 
-        {/* ⏳ IDLE */}
+        {/* --- SECCIÓN IDLE (ESPERA) --- */}
         {estado === 'idle' && (
           <div
             className="animate-in fade-in duration-1000 flex flex-col items-center cursor-pointer"
@@ -247,7 +264,6 @@ export default function LiveGala() {
             <h2 className="text-4xl md:text-7xl font-black uppercase italic tracking-tight text-white/30 drop-shadow-lg">
               GALA WSP
             </h2>
-
             <p className="text-yellow-500 font-bold uppercase tracking-[1em] text-[10px] mt-6 animate-pulse">
               Esperando señal del administrador...
             </p>
