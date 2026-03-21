@@ -4,14 +4,16 @@ export const useBattleLogic = (friendsData: any[]) => {
   const [hp, setHp] = useState(20);
   const [posicionAlma, setPosicionAlma] = useState({ x: 0, y: 0 });
   const [determinacion, setDeterminacion] = useState(0);
-  const [fase, setFase] = useState<'dialogo' | 'ataque' | 'save_menu'>('dialogo');
+  
+  // Fase inicial para las burlas de Asriel
+  const [fase, setFase] = useState<'intro' | 'dialogo' | 'ataque' | 'save_menu'>('intro');
+  const [introIndex, setIntroIndex] = useState(0); 
   const [amigoIndice, setAmigoIndice] = useState(0);
   const [estaVibrando, setEstaVibrando] = useState(false);
   
-  // CORRECCIÓN AQUÍ: Añadimos valores iniciales para evitar el error 2554
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const teclasPresionadas = useRef<{ [key: string]: boolean }>({});
-  const requestRef = useRef<number | null>(null); // <--- Aquí faltaba el null
+  const requestRef = useRef<number | null>(null);
 
   // 1. FUNCIÓN DE SONIDO
   const playSFX = useCallback((fileName: string) => {
@@ -39,10 +41,10 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [playSFX]);
 
-  // 3. MOVIMIENTO FLUIDO
+  // 3. MOVIMIENTO FLUIDO (EL LOOP DE JUEGO)
   const updateMovimiento = useCallback(() => {
     if (fase === 'ataque') {
-      const VELOCIDAD = 7; // Un poco más rápido para que no sea "torpe"
+      const VELOCIDAD = 7; 
       const LIMIT_X = 270; 
       const LIMIT_Y = 80;
 
@@ -98,7 +100,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     setTimeout(() => setInvulnerable(false), 800); 
   }, [playSFX, invulnerable]);
 
-  // 5. SALVAR
+  // 5. LÓGICA DE SALVAR
   const intentarSalvar = (esCorrecto: boolean) => {
     playSFX('select.mp3');
     
@@ -106,7 +108,7 @@ export const useBattleLogic = (friendsData: any[]) => {
       playSFX('hit.mp3');
       setDeterminacion(prev => Math.min(prev + 16.67, 100));
       
-      // Esperamos a que pase la animación de "Salvado" en el index.tsx
+      // Esperamos 4s de animación de salvación (foto color)
       setTimeout(() => {
         setFase('ataque');
         
@@ -136,6 +138,8 @@ export const useBattleLogic = (friendsData: any[]) => {
     posicionAlma,
     fase,
     setFase,
+    introIndex,
+    setIntroIndex,
     amigoActual: friendsData[amigoIndice],
     intentarSalvar,
     recibirDano,
