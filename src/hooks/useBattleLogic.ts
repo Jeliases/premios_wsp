@@ -1,4 +1,3 @@
-// src/hooks/useBattleLogic.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 export const useBattleLogic = (friendsData: any[]) => {
@@ -9,27 +8,25 @@ export const useBattleLogic = (friendsData: any[]) => {
   const [amigoIndice, setAmigoIndice] = useState(0);
   const [estaVibrando, setEstaVibrando] = useState(false);
   
-  // Referencia para la música de fondo
+  // CORRECCIÓN AQUÍ: Añadimos valores iniciales para evitar el error 2554
   const musicRef = useRef<HTMLAudioElement | null>(null);
+  const teclasPresionadas = useRef<{ [key: string]: boolean }>({});
+  const requestRef = useRef<number | null>(null); // <--- Aquí faltaba el null
 
-  // Función maestra para efectos de sonido
+  // 1. FUNCIÓN DE SONIDO
   const playSFX = useCallback((fileName: string) => {
     const audio = new Audio(`/sfx/${fileName}`);
-    audio.volume = 0.6;
-    audio.play().catch(() => console.log("Interactúa con la página para activar audio"));
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
   }, []);
 
-  // Iniciar el encuentro y la música
+  // 2. MÚSICA E INICIO
   useEffect(() => {
-    // Sonido de inicio de batalla
     playSFX('encounter.mp3');
-
-    // Configurar música de fondo
     musicRef.current = new Audio('/music/asriel_mix.mp3');
     musicRef.current.loop = true;
-    musicRef.current.volume = 0.5;
+    musicRef.current.volume = 0.4;
     
-    // La música solo suena tras el primer clic del usuario
     const startMusic = () => {
       musicRef.current?.play();
       window.removeEventListener('click', startMusic);
@@ -42,73 +39,90 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [playSFX]);
 
-  // Movimiento del alma
-  const moverAlma = useCallback((e: KeyboardEvent) => {
-    if (fase !== 'ataque') return;
-    const step = 8;
-    const limite = 140;
+  // 3. MOVIMIENTO FLUIDO
+  const updateMovimiento = useCallback(() => {
+    if (fase === 'ataque') {
+      const VELOCIDAD = 7; // Un poco más rápido para que no sea "torpe"
+      const LIMIT_X = 270; 
+      const LIMIT_Y = 80;
 
-    setPosicionAlma(prev => {
-      let { x, y } = prev;
-      if (e.key === 'ArrowUp') y = Math.max(y - step, -limite);
-      if (e.key === 'ArrowDown') y = Math.min(y + step, limite);
-      if (e.key === 'ArrowLeft') x = Math.max(x - step, -limite);
-      if (e.key === 'ArrowRight') x = Math.min(x + step, limite);
-      return { x, y };
-    });
+      setPosicionAlma(prev => {
+        let newX = prev.x;
+        let newY = prev.y;
+
+        if (teclasPresionadas.current['ArrowUp'] || teclasPresionadas.current['w']) newY -= VELOCIDAD;
+        if (teclasPresionadas.current['ArrowDown'] || teclasPresionadas.current['s']) newY += VELOCIDAD;
+        if (teclasPresionadas.current['ArrowLeft'] || teclasPresionadas.current['a']) newX -= VELOCIDAD;
+        if (teclasPresionadas.current['ArrowRight'] || teclasPresionadas.current['d']) newX += VELOCIDAD;
+
+        return {
+          x: Math.max(-LIMIT_X, Math.min(LIMIT_X, newX)),
+          y: Math.max(-LIMIT_Y, Math.min(LIMIT_Y, newY))
+        };
+      });
+    }
+    requestRef.current = requestAnimationFrame(updateMovimiento);
   }, [fase]);
 
   useEffect(() => {
-    window.addEventListener('keydown', moverAlma);
-    return () => window.removeEventListener('keydown', moverAlma);
-  }, [moverAlma]);
+    const handleKeyDown = (e: KeyboardEvent) => { teclasPresionadas.current[e.key] = true; };
+    const handleKeyUp = (e: KeyboardEvent) => { teclasPresionadas.current[e.key] = false; };
 
-  // Recibir daño
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    requestRef.current = requestAnimationFrame(updateMovimiento);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, [updateMovimiento]);
+
+  // 4. DAÑO E INVULNERABILIDAD
+  const [invulnerable, setInvulnerable] = useState(false);
+
   const recibirDano = useCallback(() => {
+    if (invulnerable) return;
+
     playSFX('damage.mp3');
     setEstaVibrando(true);
+    setInvulnerable(true);
+    
     setHp(prev => {
       const nuevoHp = prev - 4;
-      if (nuevoHp <= 0) {
-        // Lógica "But it refused"
-        // Aquí podrías usar soul_refuse.mp3 si lo tienes, 
-        // o el que definimos para sanar.
-        return 20; 
-      }
-      return nuevoHp;
+      return nuevoHp <= 0 ? 20 : nuevoHp; 
     });
-    setTimeout(() => setEstaVibrando(false), 500);
-  }, [playSFX]);
 
-  // Lógica de SALVAR
+    setTimeout(() => setEstaVibrando(false), 200);
+    setTimeout(() => setInvulnerable(false), 800); 
+  }, [playSFX, invulnerable]);
+
+  // 5. SALVAR
   const intentarSalvar = (esCorrecto: boolean) => {
-    // Sonido al elegir opción
     playSFX('select.mp3');
     
     if (esCorrecto) {
-      // Sonido de "golpe de redención"
       playSFX('hit.mp3');
+      setDeterminacion(prev => Math.min(prev + 16.67, 100));
       
-      // Subir determinación (100 / 6 amigos ≈ 16.6)
-      setDeterminacion(prev => Math.min(prev + 16.7, 100));
-      
-      setFase('ataque');
-      
-      // El ataque dura 8 segundos, luego siguiente amigo
+      // Esperamos a que pase la animación de "Salvado" en el index.tsx
       setTimeout(() => {
-        setAmigoIndice(prev => {
-          if (prev + 1 < friendsData.length) {
-            setFase('dialogo');
-            return prev + 1;
-          }
-          setFase('dialogo'); // Aquí podrías disparar el evento de victoria
-          return prev;
-        });
-        setPosicionAlma({ x: 0, y: 0 });
-      }, 8000);
+        setFase('ataque');
+        
+        setTimeout(() => {
+          setAmigoIndice(prev => {
+            if (prev + 1 < friendsData.length) {
+              setFase('dialogo');
+              return prev + 1;
+            }
+            return prev;
+          });
+          setPosicionAlma({ x: 0, y: 0 });
+        }, 7000);
+      }, 4000); 
 
     } else {
-      // Si falla, solo hay ataque pero no avanza
       setFase('ataque');
       setTimeout(() => {
         setFase('dialogo');

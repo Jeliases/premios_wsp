@@ -1,68 +1,56 @@
-// src/components/gala/battle/Attacks.tsx
 'use client'
-import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
-interface AttackProps {
-  almaPos: { x: number; y: number };
-  onHit: () => void;
-}
+export default function Attacks({ almaPos, onHit }: { almaPos: any, onHit: () => void }) {
+  const [proyectiles, setProyectiles] = useState<any[]>([]);
 
-export default function Attacks({ almaPos, onHit }: AttackProps) {
-  const [estrellas, setEstrellas] = useState<{ id: number; x: number; y: number }[]>([]);
-
-  // Generador de estrellas
   useEffect(() => {
-    const interval = setInterval(() => {
-      setEstrellas(prev => [
-        ...prev, 
-        { id: Date.now(), x: Math.random() * 300 - 150, y: -150 }
+    const intervalo = setInterval(() => {
+      setProyectiles(prev => [
+        ...prev.slice(-20), // Máximo 20 balas en pantalla para no explotar la PC
+        {
+          id: Date.now(),
+          x: Math.random() * 580,
+          y: -20,
+          speed: 8 + Math.random() * 10, // ¡MUCHO MÁS RÁPIDAS!
+          size: 10 + Math.random() * 20, // Tamaños variables
+          angle: (Math.random() - 0.5) * 45 // Caen en diagonal
+        }
       ]);
-    }, 600); // Sale una estrella cada 0.6 seg
+    }, 100); // Salen balas cada 100ms (lluvia densa)
 
-    return () => clearInterval(interval);
+    return () => clearInterval(intervalo);
   }, []);
 
-  // Movimiento y Colisión
+  // Detector de colisiones mejorado
   useEffect(() => {
-    const loop = setInterval(() => {
-      setEstrellas(prev => {
-        return prev
-          .map(e => ({ ...e, y: e.y + 4 })) // La estrella cae 4px por frame
-          .filter(e => {
-            // DETECTAR COLISIÓN (Pitágoras básico)
-            const distX = Math.abs(e.x - almaPos.x);
-            const distY = Math.abs(e.y - almaPos.y);
-            
-            if (distX < 15 && distY < 15) {
-              onHit(); // ¡TE PEGÓ!
-              return false; // La estrella desaparece al pegar
-            }
-            return e.y < 200; // Eliminar si sale de pantalla
-          });
-      });
-    }, 16); // 60 FPS aprox
-
-    return () => clearInterval(loop);
-  }, [almaPos, onHit]);
+    proyectiles.forEach(p => {
+      const dist = Math.sqrt(Math.pow(p.x - almaPos.x, 2) + Math.pow(p.y - almaPos.y, 2));
+      if (dist < 15) onHit(); // Si está a menos de 15px, daño.
+    });
+  }, [proyectiles, almaPos, onHit]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      {estrellas.map(e => (
+    <>
+      {proyectiles.map(p => (
         <motion.div
-          key={e.id}
-          className="absolute w-4 h-4 bg-white"
-          style={{ 
-            left: '50%', 
-            top: '50%', 
-            x: e.x, 
-            y: e.y,
-            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' 
+          key={p.id}
+          className="absolute bg-white shadow-[0_0_10px_white]"
+          animate={{ 
+            y: 300, 
+            x: p.x + (p.angle * 2) 
           }}
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          transition={{ duration: 10 / p.speed, ease: "linear" }}
+          style={{ 
+            left: p.x, 
+            top: p.y, 
+            width: '4px', 
+            height: p.size + 'px',
+            rotate: p.angle + 'deg'
+          }}
         />
       ))}
-    </div>
+    </>
   );
 }

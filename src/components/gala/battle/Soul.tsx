@@ -1,31 +1,36 @@
-// src/components/gala/battle/Soul.tsx
+'use client'
 import { motion } from 'framer-motion';
 
 interface SoulProps {
   x: number;
   y: number;
-  estaVibrando: boolean;
+  estaVibrando?: boolean;
 }
 
 export default function Soul({ x, y, estaVibrando }: SoulProps) {
   return (
     <motion.div
+      className="absolute z-50 pointer-events-none"
       animate={{ 
         x, 
         y,
-        // Si recibe daño, vibra como en el juego
-        rotate: estaVibrando ? [0, -10, 10, -10, 0] : 45 
+        // Si recibe daño, parpadea y se encoge un poco
+        scale: estaVibrando ? [1, 0.8, 1.2, 1] : 1,
+        opacity: estaVibrando ? [1, 0.5, 1, 0.5, 1] : 1
       }}
-      transition={{ type: 'spring', damping: 15, stiffness: 200, duration: 0.05 }}
-      className={`absolute w-4 h-4 bg-red-600 shadow-[0_0_10px_#ff0000] z-50`}
-      style={{ 
-        // El rotate 45 es para que parezca un corazón clásico de Undertale
-        transform: 'rotate(45deg)',
-        top: '50%',
-        left: '50%',
-        marginTop: '-8px',
-        marginLeft: '-8px'
-      }}
-    />
+      // Transición ultra rápida para que se sienta responsivo
+      transition={{ type: 'spring', stiffness: 1200, damping: 40 }}
+      style={{ width: '20px', height: '20px' }}
+    >
+      {/* Este SVG dibuja el corazón pixelado exacto de Undertale */}
+      <svg 
+        viewBox="0 0 10 9" 
+        fill="#ff0000" 
+        className="w-full h-full"
+        style={{ imageRendering: 'pixelated' }}
+      >
+        <path d="M2,0 h2 v1 h1 v1 h1 v-1 h2 v1 h1 v1 h1 v3 h-1 v1 h-1 v1 h-1 v1 h-2 v-1 h-1 v-1 h-1 v-1 h-1 v-3 h1 v-1 h1 v-1 z" />
+      </svg>
+    </motion.div>
   );
 }
