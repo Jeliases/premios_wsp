@@ -5,7 +5,6 @@ export const useBattleLogic = (friendsData: any[]) => {
   const [posicionAlma, setPosicionAlma] = useState({ x: 0, y: 0 });
   const [determinacion, setDeterminacion] = useState(0);
   
-  // Fase inicial para las burlas de Asriel
   const [fase, setFase] = useState<'intro' | 'dialogo' | 'ataque' | 'save_menu'>('intro');
   const [introIndex, setIntroIndex] = useState(0); 
   const [amigoIndice, setAmigoIndice] = useState(0);
@@ -15,14 +14,12 @@ export const useBattleLogic = (friendsData: any[]) => {
   const teclasPresionadas = useRef<{ [key: string]: boolean }>({});
   const requestRef = useRef<number | null>(null);
 
-  // 1. FUNCIÓN DE SONIDO
   const playSFX = useCallback((fileName: string) => {
     const audio = new Audio(`/sfx/${fileName}`);
     audio.volume = 0.4;
     audio.play().catch(() => {});
   }, []);
 
-  // 2. MÚSICA E INICIO
   useEffect(() => {
     playSFX('encounter.mp3');
     musicRef.current = new Audio('/music/asriel_mix.mp3');
@@ -41,7 +38,6 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [playSFX]);
 
-  // 3. MOVIMIENTO FLUIDO (EL LOOP DE JUEGO)
   const updateMovimiento = useCallback(() => {
     if (fase === 'ataque') {
       const VELOCIDAD = 7; 
@@ -81,12 +77,10 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [updateMovimiento]);
 
-  // 4. DAÑO E INVULNERABILIDAD
   const [invulnerable, setInvulnerable] = useState(false);
 
   const recibirDano = useCallback(() => {
     if (invulnerable) return;
-
     playSFX('damage.mp3');
     setEstaVibrando(true);
     setInvulnerable(true);
@@ -100,28 +94,29 @@ export const useBattleLogic = (friendsData: any[]) => {
     setTimeout(() => setInvulnerable(false), 800); 
   }, [playSFX, invulnerable]);
 
-  // 5. LÓGICA DE SALVAR
-// 5. LÓGICA DE SALVAR (Versión Corregida)
   const intentarSalvar = (esCorrecto: boolean) => {
-    // Ya no usamos setTimeouts aquí, el control lo tiene el index.tsx
+    playSFX('select.mp3');
+    
     if (esCorrecto) {
-      playSFX('hit.mp3'); //
-      setDeterminacion(prev => Math.min(prev + 16.67, 100)); //
+      playSFX('hit.mp3');
+      setDeterminacion(prev => Math.min(prev + 16.67, 100));
       
-      // Simplemente avanzamos el índice del amigo inmediatamente
       setAmigoIndice(prev => {
         if (prev + 1 < friendsData.length) {
-          setFase('dialogo'); // Preparamos la fase para el siguiente amigo[cite: 3]
+          setFase('dialogo'); 
           return prev + 1;
         }
         return prev;
       });
       
-      setPosicionAlma({ x: 0, y: 0 }); // Reseteamos el alma[cite: 3]
-    } else {
-      // Si falló, simplemente mandamos a ataque para que esquive
-      setFase('ataque');
       setPosicionAlma({ x: 0, y: 0 });
+    } else {
+      setFase('ataque');
+      
+      setTimeout(() => {
+        setFase('dialogo');
+        setPosicionAlma({ x: 0, y: 0 });
+      }, 6000); 
     }
   };
 
