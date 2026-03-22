@@ -1,39 +1,81 @@
 'use client'
-// 1. Cambiamos la ruta al nuevo archivo config
-import { LostSoul } from '@/lib/battle-config'; 
+import { useState, useEffect } from 'react'
+import { LostSoul } from '@/lib/battle-config'
+import { motion } from 'framer-motion'
 
 interface ActionsProps {
-  amigo: LostSoul;
-  // Actualizamos para que reciba la respuesta de Asriel si quieres mostrarla
-  onAction: (esCorrecta: boolean, respuesta: string) => void;
+  amigo: LostSoul
+  onAction: (esCorrecta: boolean, respuesta: string) => void
 }
 
 export default function Actions({ amigo, onAction }: ActionsProps) {
+  // Estado para evitar el "doble clic" accidental que rompe la fase
+  const [yaSeleccionado, setYaSeleccionado] = useState(false)
+
+  // Cada vez que el amigo cambie (ej: de Ronaldo a Indira), reseteamos el botón
+  useEffect(() => {
+    setYaSeleccionado(false)
+  }, [amigo.nombre])
+
+  const handleSelection = (esCorrecta: boolean, respuesta: string) => {
+    if (yaSeleccionado) return // Si ya hizo clic, ignoramos el resto
+    
+    setYaSeleccionado(true)
+    onAction(esCorrecta, respuesta)
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-4 w-full max-w-[600px] mt-6 px-4 bg-black/80 p-4">
-      {/* 2. Cambiamos 'opciones' por 'acciones' y 'label' por 'texto' */}
-      {amigo.acciones.map((opcion, index: number) => (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-[600px] p-4 bg-black/90 border-2 border-orange-900/50 relative z-50"
+    >
+      {amigo.acciones.map((opcion, index) => (
         <button
-          key={index}
-          onClick={() => onAction(opcion.esCorrecta, opcion.respuesta)}
+          key={`${amigo.nombre}-action-${index}`}
+          disabled={yaSeleccionado} // 🔒 Bloqueo físico del botón
+          onClick={() => handleSelection(opcion.esCorrecta, opcion.texto)}
           onMouseEnter={() => {
-            const audio = new Audio('/sfx/select.mp3');
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
+            if (!yaSeleccionado) {
+              const audio = new Audio('/sfx/select.mp3')
+              audio.volume = 0.2
+              audio.play().catch(() => {})
+            }
           }}
-          className="border-2 border-orange-500 p-3 text-orange-500 text-xl font-mono uppercase 
-                     hover:bg-orange-500 hover:text-black transition-colors text-left group"
+          className={`
+            relative border-2 p-3 text-left font-mono uppercase transition-all duration-200 group
+            ${yaSeleccionado 
+              ? 'border-zinc-800 text-zinc-700 opacity-50 cursor-default' 
+              : 'border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black active:scale-95'
+            }
+          `}
         >
-          {/* El corazón de Undertale al hacer hover */}
-          <span className="opacity-0 group-hover:opacity-100 mr-2 text-red-500">❤</span>
-          * {opcion.texto}
+          {/* El corazón clásico de Undertale en el Hover */}
+          <span className="inline-block w-4 mr-2 transition-opacity opacity-0 group-hover:opacity-100 text-red-500">
+            ❤
+          </span>
+          <span className="text-sm md:text-base">* {opcion.texto}</span>
         </button>
       ))}
       
-      {/* Botón de "Piedad" (Estético, como en la pelea real) */}
-      <button className="border-2 border-orange-500 p-3 text-orange-500 text-xl font-mono opacity-30 cursor-not-allowed text-left">
+      {/* Botón de Piedad (Siempre bloqueado para mantener la estética original) */}
+      <button 
+        disabled 
+        className="border-2 border-zinc-800 p-3 text-zinc-700 text-sm md:text-base font-mono uppercase text-left opacity-30"
+      >
+        <span className="inline-block w-4 mr-2"> </span>
         * PIEDAD
       </button>
-    </div>
-  );
+
+      {/* Mini estilo para asegurar que el grid no se rompa en móvil */}
+      <style jsx>{`
+        button {
+          text-shadow: 1px 1px 0px black;
+          word-break: break-word;
+          min-height: 50px;
+        }
+      `}</style>
+    </motion.div>
+  )
 }

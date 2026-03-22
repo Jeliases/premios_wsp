@@ -1,20 +1,21 @@
 'use client'
 import { ReactNode } from 'react';
 
-// Definimos los tipos de fases permitidos para evitar el error 2322
 interface ScreenProps {
-  fase: "dialogo" | "ataque" | "save_menu" | "salvacion"; 
+  fase: string; 
   children: ReactNode;
 }
 
 export default function Screen({ fase, children }: ScreenProps) {
   return (
-    <div className="relative w-[600px] h-[220px] bg-black border-[6px] border-white overflow-hidden shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+    <div className="relative w-full max-w-[600px] h-[200px] md:h-[240px] bg-black border-[6px] border-white overflow-hidden shadow-[0_0_25px_rgba(255,255,255,0.15)] mx-auto">
+      {/* Contenedor relativo interno para que Soul y Attacks usen coordenadas correctas */}
       <div className="relative w-full h-full">
         {children}
       </div>
-      {/* Efecto de ruido visual tipo TV antigua */}
-      <div className="absolute inset-0 pointer-events-none opacity-10 bg-[url('https://media.giphy.com/media/oEI9uWUicG7vAIdX8A/giphy.gif')] mix-blend-overlay" />
+      
+      {/* Efecto sutil de Scanlines (TV vieja) para la estética Undertale */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
     </div>
   );
 }
