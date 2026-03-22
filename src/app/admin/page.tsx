@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   PlusCircle, 
@@ -304,7 +304,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* 1. CONTROL DE CEREMONIA LIVE */}
+        {/* CONTROL DE CEREMONIA LIVE */}
         <div className="bg-gradient-to-br from-indigo-900/20 to-slate-900/40 p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
@@ -330,84 +330,6 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
-
-        {/* 2. SECCIÓN MOVIDA: EVENTO ESPECIAL ASRIEL */}
-        <div className="bg-gradient-to-r from-red-900/40 via-black to-red-900/40 p-8 rounded-[3rem] border border-red-500/40 shadow-[0_0_40px_rgba(220,38,38,0.15)] flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center gap-6">
-                <div className="bg-red-600 p-4 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse">
-                    <Flame className="text-white" size={32} />
-                </div>
-                <div>
-                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Evento de Final de Gala</h2>
-                    <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest">Inicia el combate contra Asriel Dreemurr</p>
-                </div>
-            </div>
-            
-            <div className="flex gap-4 w-full md:w-auto">
-                <button 
-                    onClick={dispararEventoAsriel}
-                    className="flex-1 md:flex-none bg-red-600 hover:bg-red-500 text-white font-black px-10 py-5 rounded-2xl uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-xl shadow-red-900/20"
-                >
-                    Iniciar Combate
-                </button>
-                <button 
-                    onClick={resetearGala}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-black p-5 rounded-2xl transition-all active:scale-95"
-                    title="Resetear a Idle"
-                >
-                    <RefreshCcw size={20} />
-                </button>
-            </div>
-        </div>
-
-        {/* MODAL DE VOTANTES */}
-        {mostrarVotantes && (
-          <div className="bg-slate-900/90 border border-yellow-500/50 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-              <h2 className="text-yellow-500 font-black uppercase italic tracking-widest flex items-center gap-2">
-                <Users size={20} /> Votos Recibidos
-              </h2>
-              <div className="flex items-center gap-3 bg-black/50 p-3 rounded-2xl border border-white/10 w-full md:w-auto">
-                <Filter size={16} className="text-yellow-500" />
-                <select 
-                  value={filtroCategoria}
-                  onChange={(e) => setFiltroCategoria(e.target.value)}
-                  className="bg-transparent text-white text-[10px] font-black uppercase outline-none cursor-pointer pr-4"
-                >
-                  <option value="">Todas</option>
-                  {categorias.map(cat => (
-                    <option key={cat.id} value={cat.nombre} className="bg-slate-900">{cat.nombre}</option>
-                  ))}
-                </select>
-              </div>
-              <button onClick={() => setMostrarVotantes(false)} className="text-slate-500 hover:text-white">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="overflow-x-auto max-h-[400px]">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[9px] uppercase text-slate-500 border-b border-white/10 font-black tracking-widest">
-                    <th className="p-4">Categoría</th>
-                    <th className="p-4">Votante</th>
-                    <th className="p-4">Candidato</th>
-                    <th className="p-4">Fecha</th>
-                  </tr>
-                </thead>
-                <tbody className="text-[11px] text-white font-bold">
-                  {votantesFiltrados.map((v, i) => (
-                    <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="p-4"><span className="text-yellow-500/50 text-[8px] font-black uppercase">{v.clips?.categorias?.nombre}</span></td>
-                      <td className="p-4 uppercase italic text-yellow-500">{v.nombre_votante}</td>
-                      <td className="p-4 uppercase">{v.clips?.titulo}</td>
-                      <td className="p-4 text-slate-500 text-[9px]">{new Date(v.created_at).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
         {/* FORMULARIOS Y NOMINADOS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -595,7 +517,88 @@ export default function AdminPage() {
               </table>
           </div>
         </div>
+
+        {/* 🚨 EVENTO ESPECIAL ASRIEL (AHORA AL FINAL DE TODO) */}
+        <div className="bg-gradient-to-r from-red-900/40 via-black to-red-900/40 p-8 rounded-[3rem] border border-red-500/40 shadow-[0_0_40px_rgba(220,38,38,0.15)] flex flex-col md:flex-row items-center justify-between gap-8 mt-12">
+            <div className="flex items-center gap-6">
+                <div className="bg-red-600 p-4 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse">
+                    <Flame className="text-white" size={32} />
+                </div>
+                <div>
+                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Evento de Final de Gala</h2>
+                    <p className="text-red-400 text-[10px] font-bold uppercase tracking-widest">Inicia el combate contra Asriel Dreemurr</p>
+                </div>
+            </div>
+            
+            <div className="flex gap-4 w-full md:w-auto">
+                <button 
+                    onClick={dispararEventoAsriel}
+                    className="flex-1 md:flex-none bg-red-600 hover:bg-red-500 text-white font-black px-10 py-5 rounded-2xl uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-xl shadow-red-900/20"
+                >
+                    Iniciar Combate
+                </button>
+                <button 
+                    onClick={resetearGala}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-black p-5 rounded-2xl transition-all active:scale-95"
+                    title="Resetear a Idle"
+                >
+                    <RefreshCcw size={20} />
+                </button>
+            </div>
+        </div>
+
       </div>
+
+      {/* MODAL DE VOTANTES (Fuera del flujo principal) */}
+      {mostrarVotantes && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+           <div className="w-full max-w-4xl bg-slate-900 border border-yellow-500/50 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+              <h2 className="text-yellow-500 font-black uppercase italic tracking-widest flex items-center gap-2">
+                <Users size={20} /> Votos Recibidos
+              </h2>
+              <div className="flex items-center gap-3 bg-black/50 p-3 rounded-2xl border border-white/10 w-full md:w-auto">
+                <Filter size={16} className="text-yellow-500" />
+                <select 
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  className="bg-transparent text-white text-[10px] font-black uppercase outline-none cursor-pointer pr-4"
+                >
+                  <option value="">Todas</option>
+                  {categorias.map(cat => (
+                    <option key={cat.id} value={cat.nombre} className="bg-slate-900">{cat.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <button onClick={() => setMostrarVotantes(false)} className="text-slate-500 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="overflow-x-auto max-h-[400px]">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[9px] uppercase text-slate-500 border-b border-white/10 font-black tracking-widest">
+                    <th className="p-4">Categoría</th>
+                    <th className="p-4">Votante</th>
+                    <th className="p-4">Candidato</th>
+                    <th className="p-4">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[11px] text-white font-bold">
+                  {votantesFiltrados.map((v, i) => (
+                    <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="p-4"><span className="text-yellow-500/50 text-[8px] font-black uppercase">{v.clips?.categorias?.nombre}</span></td>
+                      <td className="p-4 uppercase italic text-yellow-500">{v.nombre_votante}</td>
+                      <td className="p-4 uppercase">{v.clips?.titulo}</td>
+                      <td className="p-4 text-slate-500 text-[9px]">{new Date(v.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {mostrarPreview && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
