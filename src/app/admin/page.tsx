@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   PlusCircle, 
@@ -17,11 +17,11 @@ import {
   Filter,
   PlayCircle,
   Film,
-  Image as ImageIcon,
+  ImageIcon,
   Type,
   Search,
-  Flame, // Icono para el evento especial
-  RefreshCcw // Icono para reset
+  Flame, 
+  RefreshCcw 
 } from 'lucide-react'
 
 const ADMIN_WHITELIST = [
@@ -83,7 +83,6 @@ export default function AdminPage() {
     if (nomData) setNominados(nomData)
   }
 
-  // --- LÓGICA DEL EVENTO ASRIEL ---
   const dispararEventoAsriel = async () => {
     const confirmar = confirm("🚨 ATENCIÓN: Estás a punto de iniciar el COMBATE FINAL. ¿Deseas transformar la Gala para todos los espectadores?");
     if (!confirmar) return;
@@ -305,7 +304,34 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* --- NUEVA SECCIÓN: EVENTO ESPECIAL ASRIEL --- */}
+        {/* 1. CONTROL DE CEREMONIA LIVE */}
+        <div className="bg-gradient-to-br from-indigo-900/20 to-slate-900/40 p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+            <h2 className="text-sm font-black uppercase italic text-indigo-400 tracking-[0.2em]">Control de Ceremonia Live</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {categorias.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => dispararGanador(cat.id, cat.nombre)}
+                disabled={revelandoId !== null}
+                className={`relative group overflow-hidden p-6 rounded-[2rem] border transition-all duration-300 flex flex-col items-start gap-3 ${
+                  revelandoId === cat.id 
+                  ? 'bg-indigo-600 border-white animate-pulse' 
+                  : 'bg-black/40 border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5'
+                }`}
+              >
+                <PlayCircle size={24} className={revelandoId === cat.id ? 'text-white' : 'text-indigo-500'} />
+                <span className="text-[10px] font-black uppercase text-white leading-tight text-left">{cat.nombre}</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">PUCHALE PLAY</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. SECCIÓN MOVIDA: EVENTO ESPECIAL ASRIEL */}
         <div className="bg-gradient-to-r from-red-900/40 via-black to-red-900/40 p-8 rounded-[3rem] border border-red-500/40 shadow-[0_0_40px_rgba(220,38,38,0.15)] flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-6">
                 <div className="bg-red-600 p-4 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse">
@@ -332,33 +358,6 @@ export default function AdminPage() {
                     <RefreshCcw size={20} />
                 </button>
             </div>
-        </div>
-
-        {/* CONTROL DE CEREMONIA LIVE */}
-        <div className="bg-gradient-to-br from-indigo-900/20 to-slate-900/40 p-8 rounded-[3rem] border border-indigo-500/30 shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-            <h2 className="text-sm font-black uppercase italic text-indigo-400 tracking-[0.2em]">Control de Ceremonia Live</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categorias.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => dispararGanador(cat.id, cat.nombre)}
-                disabled={revelandoId !== null}
-                className={`relative group overflow-hidden p-6 rounded-[2rem] border transition-all duration-300 flex flex-col items-start gap-3 ${
-                  revelandoId === cat.id 
-                  ? 'bg-indigo-600 border-white animate-pulse' 
-                  : 'bg-black/40 border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5'
-                }`}
-              >
-                <PlayCircle size={24} className={revelandoId === cat.id ? 'text-white' : 'text-indigo-500'} />
-                <span className="text-[10px] font-black uppercase text-white leading-tight text-left">{cat.nombre}</span>
-                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">PUCHALE PLAY</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* MODAL DE VOTANTES */}
