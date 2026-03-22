@@ -29,8 +29,9 @@ export default function LiveGala() {
         .single()
 
       if (data) {
-        // PROTECCIÓN: Si al cargar la página el estado ya es combate, lo forzamos a idle
-        // para que solo inicie cuando tú lo mandes en vivo.
+        // 🛡️ SEGURIDAD INICIAL: 
+        // Si entras y la DB dice 'combate_asriel', forzamos a 'idle' para que no empiece solo.
+        // Esto obliga a que el combate SOLO inicie si el admin presiona el botón EN VIVO.
         if (data.estado_revelacion === 'combate_asriel') {
           setEstado('idle')
         } else {
@@ -55,15 +56,17 @@ export default function LiveGala() {
         (payload) => {
           const { estado_revelacion, categoria_activa, categoria_en_pantalla } = payload.new
 
-          // --- LÓGICA DE TRANSICIÓN CON GLITCH (EVENTO FINAL) ---
+          // --- 🚀 DISPARADOR EN VIVO (Cuando presionas el botón en el Panel Admin) ---
           if (estado_revelacion === 'combate_asriel') {
-            setMostrandoGlitch(true) 
+            setMostrandoGlitch(true) // 1. Activamos el efecto visual de error
+            
             if (audioEsperaRef.current) audioEsperaRef.current.pause()
             if (confettiIntervalRef.current) clearInterval(confettiIntervalRef.current)
             
+            // 2. Esperamos el tiempo del Glitch antes de montar la Batalla
             setTimeout(() => {
               setMostrandoGlitch(false)
-              setEstado(estado_revelacion) // Aquí se activa por el cambio en vivo[cite: 6]
+              setEstado('combate_asriel') // 3. Aquí es donde realmente arranca BattleMain
             }, 1500)
           } else {
             setEstado(estado_revelacion)
@@ -158,9 +161,12 @@ export default function LiveGala() {
     }, 7800)
   }
 
-  // --- RENDERIZADO PRIORITARIO ---
+  // --- 🛡️ RENDERIZADO PRIORITARIO (ORDEN DE CAPAS) ---
+  
+  // 1. Si estamos en transición de error
   if (mostrandoGlitch) return <GlitchTransition />
   
+  // 2. Si el combate está activo
   if (estado === 'combate_asriel') {
     return (
       <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-1000">
@@ -169,6 +175,7 @@ export default function LiveGala() {
     )
   }
 
+  // 3. Interfaz normal de la Gala
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black flex items-center justify-center overflow-hidden text-white font-sans relative">
 
