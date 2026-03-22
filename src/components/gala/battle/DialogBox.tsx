@@ -10,18 +10,17 @@ interface DialogBoxProps {
 export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   const [displayedText, setDisplayedText] = useState('')
   const [isFinished, setIsFinished] = useState(false)
-  const [haTerminadoFrase, setHaTerminadoFrase] = useState(false) // 🔒 Seguro anti-doble ejecución
+  const [haTerminadoFrase, setHaTerminadoFrase] = useState(false) 
   const soundRef = useRef<HTMLAudioElement | null>(null)
 
-  // 1. Cargar sonido de bleep (estilo Undertale)
+  // Cargar sonido de tipeo
   useEffect(() => {
     soundRef.current = new Audio('/sfx/bleep.mp3')
     soundRef.current.volume = 0.2
   }, [])
 
-  // 2. ⚡ CORRECCIÓN: Resetear estados y escribir cuando cambia la frase
+  // Efecto de máquina de escribir
   useEffect(() => {
-    // Limpieza inmediata para evitar que se vea el rastro del texto anterior (como "Hablar de bugs")
     setDisplayedText('');
     setIsFinished(false);
     setHaTerminadoFrase(false); 
@@ -30,10 +29,8 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
 
     let i = 0;
     const interval = setInterval(() => {
-      // Usamos el estado funcional o slice directo para asegurar sincronía
       setDisplayedText(texto.slice(0, i + 1));
       
-      // Sonido cada 2 letras para dar efecto de voz de personaje
       if (soundRef.current && i % 2 === 0 && texto.charAt(i) !== ' ') {
         soundRef.current.currentTime = 0;
         soundRef.current.play().catch(() => {});
@@ -44,31 +41,26 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         clearInterval(interval);
         setIsFinished(true);
       }
-    }, 35); // Velocidad de escritura (ms)
+    }, 35); 
 
     return () => clearInterval(interval);
-  }, [texto]); // Se dispara CADA VEZ que la prop 'texto' cambia
+  }, [texto]);
 
-  // 3. Manejo del Enter / Click con bloqueo de doble ejecución
+  // Manejo de la tecla Enter / Z para avanzar
   const handleNext = useCallback((e?: KeyboardEvent) => {
-    // Solo permitimos Enter o la tecla Z
     if (e && !['Enter', 'z', 'Z'].includes(e.key)) return;
 
     if (isFinished) {
-      // --- EL SEGURO ---
-      // Si ya se disparó el onComplete para esta frase, ignoramos más clics
       if (haTerminadoFrase) return; 
       
-      setHaTerminadoFrase(true); // Cerramos el seguro inmediatamente
+      setHaTerminadoFrase(true); 
       onComplete(); 
     } else {
-      // Si el usuario presiona mientras todavía escribe, mostramos todo de golpe
       setDisplayedText(texto)
       setIsFinished(true)
     }
   }, [isFinished, haTerminadoFrase, texto, onComplete])
 
-  // Listener para el teclado
   useEffect(() => {
     window.addEventListener('keydown', handleNext)
     return () => window.removeEventListener('keydown', handleNext)
@@ -76,17 +68,27 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
 
   return (
     <div 
-      className="relative w-full h-full p-6 cursor-pointer select-none overflow-hidden"
+      className="relative w-full h-full p-6 cursor-pointer select-none overflow-hidden bg-black border-[4px] border-white"
       onClick={() => handleNext()} 
     >
+      {/* 🚀 INYECCIÓN DIRECTA DE LA FUENTE (Sin tocar globals.css) */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.cdnfonts.com/css/determination-mono');
+        .font-determination {
+          font-family: 'Determination Mono', sans-serif !important;
+          -webkit-font-smoothing: none;
+        }
+      `}} />
+
       <div className="min-h-[100px]">
-        <p className="text-white text-xl md:text-2xl font-mono leading-relaxed tracking-wide italic text-left">
+        {/* 🚀 APLICAMOS LA FUENTE: Sin 'italic', con 'uppercase' y separando letras (tracking-widest) */}
+        <p className="text-white text-xl md:text-3xl font-determination uppercase leading-relaxed tracking-widest text-left" style={{ wordBreak: 'break-word' }}>
           * {displayedText}
           {isFinished && (
             <motion.span
               animate={{ opacity: [0, 1, 0] }}
               transition={{ repeat: Infinity, duration: 0.8 }}
-              className="inline-block ml-2 w-3 h-5 bg-white align-middle"
+              className="inline-block ml-2 w-3 h-6 bg-white align-middle"
             />
           )}
         </p>
@@ -96,18 +98,11 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute bottom-4 right-6 text-[10px] text-zinc-600 uppercase tracking-[0.3em]"
+          className="absolute bottom-4 right-6 text-xs text-zinc-500 font-determination tracking-[0.3em]"
         >
           [ ENTER ]
         </motion.p>
       )}
-
-      <style jsx>{`
-        p {
-          text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-          word-break: break-word;
-        }
-      `}</style>
     </div>
   )
 }

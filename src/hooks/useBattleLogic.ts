@@ -38,6 +38,14 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [playSFX]);
 
+  // 🎵 NUEVA FUNCIÓN: Para matar el audio de Asriel desde el index
+  const detenerAudio = useCallback(() => {
+    if (musicRef.current) {
+      musicRef.current.pause();
+      musicRef.current.currentTime = 0;
+    }
+  }, []);
+
   const updateMovimiento = useCallback(() => {
     if (fase === 'ataque') {
       const VELOCIDAD = 7; 
@@ -68,7 +76,12 @@ export const useBattleLogic = (friendsData: any[]) => {
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    requestRef.current = requestAnimationFrame(updateMovimiento);
+    
+    const tick = () => {
+      updateMovimiento();
+      requestRef.current = requestAnimationFrame(tick);
+    }
+    requestRef.current = requestAnimationFrame(tick);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -131,6 +144,8 @@ export const useBattleLogic = (friendsData: any[]) => {
     intentarSalvar,
     recibirDano,
     estaVibrando,
-    determinacion
+    determinacion,
+    amigoIndice, // Exponemos amigoIndice para que index.tsx sepa cuándo cambiar a Ded.webp
+    detenerAudio // Exponemos detenerAudio para el final
   };
 };
