@@ -40,7 +40,7 @@ export default function BattleMain() {
     if (esCorrecta) {
       setMostrandoSalvado(true);
     } else {
-      // 🔑 Forzamos fase diálogo para mostrar el texto de error
+      // Forzamos fase diálogo para mostrar el texto de error
       setFase('dialogo'); 
     }
   };
@@ -52,7 +52,7 @@ export default function BattleMain() {
       setMostrandoSalvado(false); 
       setTextoRespuesta('');      
       
-      // ⏳ Delay para desmontar visuales antes de cambiar datos
+      // Delay para desmontar visuales antes de cambiar datos
       setTimeout(() => {
         intentarSalvar(true); 
         setTimeout(() => {
@@ -95,14 +95,14 @@ export default function BattleMain() {
             </motion.div>
           ) : (
             <motion.div 
-              key={`sprite-${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`} 
-              initial={{ opacity: 0, scale: 0.8 }} 
+              key={`sprite-${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`}
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               className="flex flex-col items-center"
             >
               <img 
-                src={mostrandoSalvado ? amigoActual.fotoColor : amigoActual.fotoX} 
+                src={mostrandoSalvado ? amigoActual.fotoColor : amigoActual.fotoX}
                 className={`w-52 h-52 md:w-64 md:h-64 object-contain border-4 shadow-2xl transition-all ${
                   mostrandoSalvado ? 'border-yellow-400 shadow-[0_0_30px_gold]' : 'border-red-600 grayscale brightness-50'
                 }`}
@@ -126,19 +126,18 @@ export default function BattleMain() {
             {fase === 'intro' && (
               <DialogBox 
                 key={`intro-${introIndex}`}
-                texto={BATTLE_STORY.intro[introIndex]} 
+                texto={BATTLE_STORY.intro[introIndex]}
                 onComplete={avanzarDialogoIntro}
               />
             )}
 
             {(fase === 'dialogo' || mostrandoSalvado) && (
               <DialogBox 
-                // 🔑 KEY DINÁMICA: Reinicia el componente al fallar o salvar[cite: 4]
                 key={`dialogo-${amigoActual.id}-${mostrandoSalvado}-${textoRespuesta}`}
                 texto={
                   mostrandoSalvado 
-                    ? amigoActual.fraseSalvado 
-                    : (textoRespuesta || amigoActual.frasePerdida) 
+                    ? amigoActual.fraseSalvado
+                    : (textoRespuesta || amigoActual.frasePerdida)
                 } 
                 onComplete={continuarTrasRespuesta}
               />
