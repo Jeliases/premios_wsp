@@ -157,29 +157,29 @@ export default function AdminPage() {
     }
   };
 
-  const verVotantes = async () => {
-    setLoadingVotantes(true)
-    const { data, error } = await supabase
-      .from('votos')
-      .select(`
-        nombre_votante,
-        email_votante,
-        created_at,
-        clips ( 
-          titulo,
-          categorias ( nombre ) 
-        )
-      `)
-      .order('created_at', { ascending: false });
+const verVotantes = async () => {
+  setLoadingVotantes(true)
+  const { data, error } = await supabase
+    .from('votos')
+    .select(`
+      created_at,
+      profiles ( full_name ), 
+      clips ( 
+        titulo,
+        categorias ( nombre ) 
+      )
+    `)
+    .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setVotantes(data)
-      setMostrarVotantes(true)
-    } else {
-      alert("Error al cargar votantes: " + error?.message)
-    }
-    setLoadingVotantes(false)
+  if (!error && data) {
+    setVotantes(data)
+    setMostrarVotantes(true)
+  } else {
+    console.error("Error:", error)
+    alert("Error al cargar votantes: " + error?.message)
   }
+  setLoadingVotantes(false)
+}
 
   const votantesFiltrados = filtroCategoria 
     ? votantes.filter(v => v.clips?.categorias?.nombre === filtroCategoria)
@@ -588,7 +588,10 @@ export default function AdminPage() {
                   {votantesFiltrados.map((v, i) => (
                     <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="p-4"><span className="text-yellow-500/50 text-[8px] font-black uppercase">{v.clips?.categorias?.nombre}</span></td>
-                      <td className="p-4 uppercase italic text-yellow-500">{v.nombre_votante}</td>
+                      <td className="p-4 uppercase italic text-yellow-500">
+                        {/* Accedemos al nombre que viene de la tabla relacionada */}
+                        {v.profiles?.full_name || "Usuario Desconocido"}
+                      </td>
                       <td className="p-4 uppercase">{v.clips?.titulo}</td>
                       <td className="p-4 text-slate-500 text-[9px]">{new Date(v.created_at).toLocaleString()}</td>
                     </tr>
