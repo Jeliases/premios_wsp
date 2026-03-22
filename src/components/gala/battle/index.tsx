@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBattleLogic } from '@/hooks/useBattleLogic';
 import { BATTLE_STORY } from '@/lib/battle-config'; 
 import Screen from './Screen';
@@ -20,154 +20,149 @@ export default function BattleMain() {
 
   const [mostrandoSalvado, setMostrandoSalvado] = useState(false);
   const [textoRespuesta, setTextoRespuesta] = useState('');
+  const [sacudirPantalla, setSacudirPantalla] = useState(false);
 
+  // 1. AVANCE MANUAL: Intro
+  const avanzarDialogoIntro = () => {
+    if (introIndex < BATTLE_STORY.intro.length - 1) {
+      setIntroIndex(introIndex + 1);
+    } else {
+      setFase('dialogo');
+    }
+  };
+
+  // 2. MANEJO DE SELECCIÓN (Acierto o Fallo)
   const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
     setTextoRespuesta(respuesta);
     
     if (esCorrecta) {
       setMostrandoSalvado(true);
-      intentarSalvar(true); 
-      // Mantenemos la imagen colorida por 4 segundos
-      setTimeout(() => {
-        setMostrandoSalvado(false);
-        setTextoRespuesta('');
-      }, 4000);
     } else {
+      // SI FALLA: Activamos el efecto de sacudida
+      setSacudirPantalla(true);
       setFase('dialogo'); 
+      // La sacudida dura lo que el usuario tarde en leer, o 1s de impacto inicial
+      setTimeout(() => setSacudirPantalla(false), 1000);
+    }
+  };
+
+  // 3. CONTINUAR TRAS ENTER
+  const continuarTrasRespuesta = () => {
+    if (mostrandoSalvado) {
+      setMostrandoSalvado(false);
+      setTextoRespuesta('');
+      intentarSalvar(true); 
+    } else if (textoRespuesta) {
+      setTextoRespuesta('');
+      setFase('ataque');
+      intentarSalvar(false); 
     }
   };
 
   if (!amigoActual) return <div className="bg-black min-h-screen" />;
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-black text-white font-mono overflow-hidden">
+    <motion.div 
+      // EFECTO DE SACUDIDA (SHAKE)
+      animate={sacudirPantalla ? { x: [-10, 10, -10, 10, 0], y: [-5, 5, -5, 5, 0] } : {}}
+      transition={{ duration: 0.1, repeat: 5 }}
+      className="relative flex flex-col items-center justify-start min-h-screen bg-black text-white font-mono overflow-hidden py-4"
+    >
       <Background />
       
-      <div className="relative z-20">
+      {/* 1. GALERÍA SUPERIOR */}
+      <div className="h-[80px] z-20 flex items-center justify-center">
         <SoulGallery amigos={BATTLE_STORY.amigos} determinacion={determinacion} />
       </div>
 
-      {/* 1. SECCIÓN DEL ENEMIGO / AMIGOS */}
-      <div className="relative h-[300px] flex items-center justify-center mb-4">
+      {/* 2. AREA DEL SPRITE (Fija para evitar saltos) */}
+      <div className="h-[280px] flex items-center justify-center relative w-full mt-4">
         <AnimatePresence mode="wait">
-          {/* ASRIEL: Solo aparece en la INTRO o durante el ATAQUE */}
           {(fase === 'intro' || fase === 'ataque') && !mostrandoSalvado ? (
-            <motion.div 
-              key="asriel"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
+            <motion.div key="asriel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Enemy fase={fase} />
             </motion.div>
           ) : (
-            /* AMIGOS: Aparecen en Diálogo, Menú o Salvación */
-            <motion.div 
-              key="amigo"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="relative flex flex-col items-center"
-            >
+            <motion.div key="amigo" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
               <img 
                 src={mostrandoSalvado ? amigoActual.fotoColor : amigoActual.fotoX} 
-                className={`w-72 h-72 object-contain transition-all duration-500 ${
-                  !mostrandoSalvado ? 'grayscale brightness-50 contrast-125' : 'drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]'
+                className={`w-64 h-64 object-contain border-4 shadow-2xl transition-all duration-700 ${
+                  mostrandoSalvado ? 'border-yellow-400' : 'border-red-600 grayscale brightness-50'
                 }`}
                 style={{ imageRendering: 'pixelated' }}
               />
-              {!mostrandoSalvado && (
-                <div className="absolute inset-0 bg-transparent animate-pulse border-4 border-red-500/20 rounded-lg" />
-              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <div className="mb-2 flex items-center gap-4">
-        <span className="text-yellow-400 font-bold tracking-tighter text-xl italic">HP {hp}/20</span>
-        <div className="w-32 h-4 bg-red-900 border border-white">
-          <div className="h-full bg-yellow-400" style={{ width: `${(hp/20)*100}%` }} />
+      {/* 3. HP BAR */}
+      <div className="h-[40px] flex items-center gap-4 my-4 z-10">
+        <span className="text-yellow-400 italic font-black text-xl">HP {hp}/20</span>
+        <div className="w-48 h-4 bg-red-900 border-2 border-white">
+          <div className="h-full bg-yellow-400 transition-all" style={{ width: `${(hp/20)*100}%` }} />
         </div>
       </div>
 
-      {/* 2. PANTALLA DE TEXTO / ALMA */}
-      <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
-        <AnimatePresence mode="wait">
-          {fase === 'intro' && (
-            <DialogBox 
-              key={`intro-${introIndex}`}
-              texto={BATTLE_STORY.intro[introIndex]} 
-              onComplete={() => {
-                if (introIndex < BATTLE_STORY.intro.length - 1) {
-                  setIntroIndex(introIndex + 1);
-                } else {
-                  setFase('dialogo');
-                }
-              }}
-            />
-          )}
+      {/* 4. SCREEN (DIÁLOGOS Y ALMA) */}
+      <div className="z-10 shadow-2xl">
+        <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
+          <AnimatePresence mode="wait">
+            {fase === 'intro' && (
+              <DialogBox 
+                key={`intro-${introIndex}`}
+                texto={BATTLE_STORY.intro[introIndex]} 
+                onComplete={avanzarDialogoIntro}
+              />
+            )}
 
-          {fase === 'dialogo' && !mostrandoSalvado && (
-            <DialogBox 
-              key="dialogo-amigo"
-              texto={textoRespuesta || amigoActual.frasePerdida} 
-              onComplete={() => {
-                if (textoRespuesta) {
-                  setTextoRespuesta('');
-                  setFase('ataque');
-                  intentarSalvar(false); 
-                } else {
-                  setFase('save_menu');
-                }
-              }}
-            />
-          )}
+            {fase === 'dialogo' && !mostrandoSalvado && (
+              <DialogBox 
+                key="dialogo-main"
+                texto={textoRespuesta || amigoActual.frasePerdida} 
+                onComplete={textoRespuesta ? continuarTrasRespuesta : () => setFase('save_menu')}
+              />
+            )}
 
-          {fase === 'ataque' && (
-            <div className="relative h-full w-full">
-              <Soul x={posicionAlma.x} y={posicionAlma.y} estaVibrando={estaVibrando} />
-              <Attacks almaPos={posicionAlma} onHit={recibirDano} />
-            </div>
-          )}
+            {fase === 'ataque' && (
+              <div className="relative h-full w-full">
+                <Soul x={posicionAlma.x} y={posicionAlma.y} estaVibrando={estaVibrando} />
+                <Attacks almaPos={posicionAlma} onHit={recibirDano} />
+              </div>
+            )}
 
-          {mostrandoSalvado && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              className="flex items-center justify-center h-full p-6"
-            >
-              <p className="text-yellow-400 text-2xl italic font-black text-center leading-tight">
-                "{amigoActual.fraseSalvado}"
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Screen>
+            {mostrandoSalvado && (
+              <DialogBox 
+                key="msg-save"
+                texto={amigoActual.fraseSalvado}
+                onComplete={continuarTrasRespuesta}
+              />
+            )}
+          </AnimatePresence>
+        </Screen>
+      </div>
 
-      {/* 3. CONTROLES */}
-      <div className="h-[140px] mt-4">
+      {/* 5. MENÚ ACCIONES (Botones Hope/Dreams) */}
+      <div className="h-[150px] w-full max-w-[600px] flex items-center justify-center mt-6">
         {fase === 'save_menu' && !mostrandoSalvado && (
           <Actions amigo={amigoActual} onAction={manejarAccion} />
         )}
       </div>
 
-      <div className="w-full max-w-xl mt-4 px-4">
-        <div className="h-4 bg-zinc-900 border-2 border-white relative">
+      {/* 6. DETERMINACIÓN */}
+      <div className="w-full max-w-xl px-4 mt-2">
+        <div className="h-2 bg-zinc-900 border border-white/30 overflow-hidden">
           <motion.div 
-            className="h-full bg-gradient-to-r from-yellow-600 to-yellow-200" 
+            className="h-full bg-gradient-to-r from-red-600 via-yellow-400 to-white shadow-[0_0_10px_white]" 
             animate={{ width: `${determinacion}%` }} 
           />
         </div>
-        <p className="text-center text-[10px] mt-1 tracking-[0.3em] uppercase opacity-50">
-          Determinación de la Gala: {Math.round(determinacion)}%
-        </p>
       </div>
 
       <style jsx global>{`
         @import url('https://fonts.cdnfonts.com/css/determination-mono');
         * { font-family: 'Determination Mono', monospace !important; }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

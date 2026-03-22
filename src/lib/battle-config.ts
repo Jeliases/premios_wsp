@@ -33,7 +33,7 @@ export const BATTLE_STORY = {
       frasePerdida: "Ronaldo está rodeado de sombras... parece estar entrando en su fase más edgy.",
       dialogoTriste: "Ya no importa... la programación es solo código vacío... Zaun está más cerca de lo que creen...",
       acciones: [
-        { texto: "Hablar de bugs", esCorrecta: false, respuesta: "Ronaldo se achicopala... 'Ni eso puedo hacer bien' dice." },
+        { texto: "Hablar de bugs", esCorrecta: false, respuesta: "Ronaldo se achicopala 'Ni eso puedo hacer bien' dice." },
         { texto: "Llamar al Comandante de las Tropas Jurásicas", esCorrecta: true, respuesta: "¡Ronaldo recuerda su rango! Sus ojos brillan con carisma." },
         { texto: "Decirle que el anime es mid", esCorrecta: false, respuesta: "Se pone aún más edgy. Mal movimiento." }
       ],

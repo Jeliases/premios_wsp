@@ -29,7 +29,14 @@ export default function LiveGala() {
         .single()
 
       if (data) {
-        setEstado(data.estado_revelacion)
+        // PROTECCIÓN: Si al cargar la página el estado ya es combate, lo forzamos a idle
+        // para que solo inicie cuando tú lo mandes en vivo.
+        if (data.estado_revelacion === 'combate_asriel') {
+          setEstado('idle')
+        } else {
+          setEstado(data.estado_revelacion)
+        }
+        
         setCategoria(data.categoria_en_pantalla)
 
         if (data.estado_revelacion === 'activar_susto') {
@@ -48,7 +55,7 @@ export default function LiveGala() {
         (payload) => {
           const { estado_revelacion, categoria_activa, categoria_en_pantalla } = payload.new
 
-          // --- LÓGICA DE TRANSICIÓN CON GLITCH (SUSTO) ---
+          // --- LÓGICA DE TRANSICIÓN CON GLITCH (EVENTO FINAL) ---
           if (estado_revelacion === 'combate_asriel') {
             setMostrandoGlitch(true) 
             if (audioEsperaRef.current) audioEsperaRef.current.pause()
@@ -56,7 +63,7 @@ export default function LiveGala() {
             
             setTimeout(() => {
               setMostrandoGlitch(false)
-              setEstado(estado_revelacion)
+              setEstado(estado_revelacion) // Aquí se activa por el cambio en vivo[cite: 6]
             }, 1500)
           } else {
             setEstado(estado_revelacion)
@@ -165,17 +172,14 @@ export default function LiveGala() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-black flex items-center justify-center overflow-hidden text-white font-sans relative">
 
-      {/* ✨ iluminación tipo escenario */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.08),transparent_70%)] pointer-events-none" />
 
-      {/* Audio de Espera Suspense */}
       <audio
         ref={audioEsperaRef}
         loop
         src="https://assets.mixkit.co/music/preview/mixkit-cinematic-mystery-suspense-675.mp3"
       />
 
-      {/* Video de Fondo Susto/Revelación */}
       <video
         ref={videoRef}
         loop
@@ -185,10 +189,7 @@ export default function LiveGala() {
         }`}
       />
 
-      {/* CONTENIDO PRINCIPAL */}
       <div className="z-[60] text-center w-full max-w-[90vw]">
-
-        {/* --- SECCIÓN FAKE GANADOR --- */}
         {faseTexto === 'fake' && (
           <div className="animate-in fade-in zoom-in duration-700 ease-out px-4">
             <h2 className="text-yellow-500 font-black italic text-3xl mb-4 tracking-[0.3em] uppercase">
@@ -202,10 +203,8 @@ export default function LiveGala() {
           </div>
         )}
 
-        {/* --- SECCIÓN GANADOR REAL --- */}
         {faseTexto === 'real' && ganador && (
           <div className="relative flex flex-col items-center justify-center min-h-screen py-10">
-            {/* Glow elegante */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-[600px] h-[600px] bg-yellow-400/20 blur-[180px] rounded-full animate-pulse" />
             </div>
@@ -215,7 +214,6 @@ export default function LiveGala() {
                 ¡GANADOR OFICIAL!
               </h2>
 
-              {/* 🎬 TARJETA PREMIUM */}
               <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden border border-yellow-400/30 shadow-[0_0_80px_rgba(234,179,8,0.25)] bg-black backdrop-blur-md relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
                 {ganador.tipo === 'video' && (
@@ -233,7 +231,6 @@ export default function LiveGala() {
                 )}
               </div>
 
-              {/* INFO GANADOR */}
               <div className="text-center">
                 <p className="text-white/40 font-bold uppercase tracking-[0.8em] text-xs italic mb-2">
                   {categoria}
@@ -243,7 +240,6 @@ export default function LiveGala() {
                 </h1>
               </div>
 
-              {/* SEPARADOR THE EXPERIENCE */}
               <div className="flex items-center justify-center gap-6 pt-4">
                 <div className="h-[1px] w-20 bg-yellow-500/50" />
                 <span className="text-yellow-400 font-bold uppercase tracking-[1.2em] text-[10px] opacity-80">
@@ -255,7 +251,6 @@ export default function LiveGala() {
           </div>
         )}
 
-        {/* --- SECCIÓN IDLE (ESPERA) --- */}
         {estado === 'idle' && (
           <div
             className="animate-in fade-in duration-1000 flex flex-col items-center cursor-pointer"
