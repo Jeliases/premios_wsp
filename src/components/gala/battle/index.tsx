@@ -52,32 +52,35 @@ export default function BattleMain() {
     }
   };
 
-  // ✅ 3. FIX CLAVE: continuarTrasRespuesta (Anti Race Condition)
-  const continuarTrasRespuesta = () => {
-    // Si no estamos en un estado que requiera confirmación, ignoramos
-    if (!mostrandoSalvado && !textoRespuesta && fase !== 'intro') return;
 
-    if (mostrandoSalvado) {
-      // 1. Limpiamos visuales primero
-      setMostrandoSalvado(false);
-      setTextoRespuesta('');
 
-      // 2. Delay mínimo para que React procese la limpieza antes de cambiar de amigo
-      setTimeout(() => {
-        intentarSalvar(true);
-        setBloqueado(false); // 🔓 Desbloqueamos para el siguiente turno
-      }, 150);
+const continuarTrasRespuesta = () => {
+  // Si el lock anti-spam está activo, no hacemos nada
+  if (bloqueado) return;
 
-    } else if (textoRespuesta) {
-      setTextoRespuesta('');
-      setFase('ataque');
-
-      setTimeout(() => {
-        intentarSalvar(false);
-        setBloqueado(false); // 🔓 Desbloqueamos para la pelea
-      }, 150);
-    }
-  };
+  if (mostrandoSalvado) {
+    // Caso 1: Acabas de salvar al amigo (Foto Color)
+    setMostrandoSalvado(false);
+    setTextoRespuesta('');
+    setTimeout(() => {
+      intentarSalvar(true);
+      setBloqueado(false);
+    }, 150);
+  } else if (textoRespuesta) {
+    // Caso 2: Fallaste la respuesta (Texto de Asriel/Burla)
+    setTextoRespuesta('');
+    setFase('ataque');
+    setTimeout(() => {
+      intentarSalvar(false);
+      setBloqueado(false);
+    }, 150);
+  } else if (fase === 'dialogo') {
+    // ✅ CASO 3 (EL QUE TE FALTA): Diálogo inicial del amigo ("Ronaldo está rodeado...")
+    // Simplemente pasamos al menú de acciones (HOPE/DREAMS)
+    setFase('save_menu');
+    setBloqueado(false); 
+  }
+};
 
   if (!amigoActual) return <div className="bg-black min-h-screen" />;
 
@@ -137,10 +140,11 @@ export default function BattleMain() {
 
             {(fase === 'dialogo' || mostrandoSalvado) && (
               <DialogBox 
-                key={mostrandoSalvado ? 'save-msg' : 'fail-msg'}
+            
+                key={mostrandoSalvado ? 'save-msg' : (textoRespuesta ? 'fail-msg' : 'inicio-amigo')}
                 texto={mostrandoSalvado ? amigoActual.fraseSalvado : (textoRespuesta || amigoActual.frasePerdida)} 
                 onComplete={continuarTrasRespuesta}
-              />
+            />
             )}
 
             {fase === 'ataque' && (
