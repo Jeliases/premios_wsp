@@ -163,7 +163,7 @@ const verVotantes = async () => {
     .from('votos')
     .select(`
       created_at,
-      profiles ( full_name ), 
+      profiles ( full_name ),
       clips ( 
         titulo,
         categorias ( nombre ) 
@@ -175,7 +175,6 @@ const verVotantes = async () => {
     setVotantes(data)
     setMostrarVotantes(true)
   } else {
-    console.error("Error:", error)
     alert("Error al cargar votantes: " + error?.message)
   }
   setLoadingVotantes(false)
