@@ -32,40 +32,36 @@ export default function BattleMain() {
   };
 
   // 2. Selección de acción (HOPE/DREAMS)
-const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
-  if (bloqueado) return;
-  setBloqueado(true); 
-  setTextoRespuesta(respuesta); 
+  const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
+    if (bloqueado) return;
+    setBloqueado(true); 
+    setTextoRespuesta(respuesta);
 
-  if (esCorrecta) {
-    setMostrandoSalvado(true);
-  } else {
- 
-    setFase('dialogo'); 
-  }
-};
+    if (esCorrecta) {
+      setMostrandoSalvado(true);
+    } else {
+      // 🔑 Forzamos fase diálogo para mostrar el texto de error
+      setFase('dialogo'); 
+    }
+  };
 
-  // 3. EL CORAZÓN DEL FIX: Limpieza absoluta antes de avanzar (Evita el bug de Ronaldo)
-const continuarTrasRespuesta = () => {
+  // 3. Limpieza absoluta antes de avanzar
+  const continuarTrasRespuesta = () => {
     if (mostrandoSalvado) {
-      // 1. Bloqueamos todo y borramos rastros visuales primero
       setBloqueado(true); 
       setMostrandoSalvado(false); 
       setTextoRespuesta('');      
       
-      // 2. IMPORTANTE: Usamos un tiempo un poco mayor (200ms) 
-      // para asegurar que AnimatePresence desmonte a Ronaldo por completo.
+      // ⏳ Delay para desmontar visuales antes de cambiar datos
       setTimeout(() => {
-        intentarSalvar(true); // 3. RECIÉN AQUÍ cargamos a Cristian
-        
-        // 4. Damos otro pequeño respiro antes de liberar los botones
+        intentarSalvar(true); 
         setTimeout(() => {
           setBloqueado(false);
         }, 50);
       }, 200);
 
     } else if (textoRespuesta) {
-      // Si falló, reseteamos y vamos a ataque
+      // Caso de error: Limpiamos texto y vamos a ataque
       setBloqueado(true);
       setTextoRespuesta('');
       setFase('ataque');
@@ -90,7 +86,7 @@ const continuarTrasRespuesta = () => {
         <SoulGallery amigos={BATTLE_STORY.amigos} determinacion={determinacion} />
       </div>
 
-      {/* SECCIÓN 2: PERSONAJE (Imagen X o Color) */}
+      {/* SECCIÓN 2: PERSONAJE */}
       <div className="flex-1 w-full flex flex-col items-center justify-center relative min-h-[280px] z-10">
         <AnimatePresence mode="wait">
           {(fase === 'intro' || fase === 'ataque') && !mostrandoSalvado ? (
@@ -99,7 +95,6 @@ const continuarTrasRespuesta = () => {
             </motion.div>
           ) : (
             <motion.div 
-              // 🔑 KEY MAESTRA: Si cambia el nombre, el componente se destruye y renace limpio
               key={`sprite-${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`} 
               initial={{ opacity: 0, scale: 0.8 }} 
               animate={{ opacity: 1, scale: 1 }}
@@ -125,28 +120,38 @@ const continuarTrasRespuesta = () => {
       </div>
 
       {/* SECCIÓN 3: CUADRO DE DIÁLOGO (SCREEN) */}
-<div className="z-20 w-full max-w-[620px] px-4 h-[200px]">
-  <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
-    <AnimatePresence mode="wait">
-      {/* ... (Intro de Asriel) ... */}
+      <div className="z-20 w-full max-w-[620px] px-4 h-[200px]">
+        <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
+          <AnimatePresence mode="wait">
+            {fase === 'intro' && (
+              <DialogBox 
+                key={`intro-${introIndex}`}
+                texto={BATTLE_STORY.intro[introIndex]} 
+                onComplete={avanzarDialogoIntro}
+              />
+            )}
 
-      {(fase === 'dialogo' || mostrandoSalvado) && (
-        <DialogBox 
-          // 🔑 KEY DINÁMICA: Si el texto cambia a una respuesta de error, 
-          // la key cambia y el componente se reinicia solo.
-          key={`dialogo-${amigoActual.id}-${mostrandoSalvado ? 'save' : 'msg'}-${textoRespuesta.length}`}
-          texto={
-            mostrandoSalvado 
-              ? amigoActual.fraseSalvado 
-              : (textoRespuesta || amigoActual.frasePerdida) // 👈 Aquí priorizamos la respuesta del error
-          } 
-          onComplete={continuarTrasRespuesta}
-        />
-      )}
+            {(fase === 'dialogo' || mostrandoSalvado) && (
+              <DialogBox 
+                // 🔑 KEY DINÁMICA: Reinicia el componente al fallar o salvar[cite: 4]
+                key={`dialogo-${amigoActual.id}-${mostrandoSalvado}-${textoRespuesta}`}
+                texto={
+                  mostrandoSalvado 
+                    ? amigoActual.fraseSalvado 
+                    : (textoRespuesta || amigoActual.frasePerdida) 
+                } 
+                onComplete={continuarTrasRespuesta}
+              />
+            )}
 
-      {/* ... (Ataque) ... */}
-    </AnimatePresence>
-  </Screen>
+            {fase === 'ataque' && (
+              <div key="battle-box" className="relative h-full w-full">
+                <Soul x={posicionAlma.x} y={posicionAlma.y} estaVibrando={estaVibrando} />
+                <Attacks almaPos={posicionAlma} onHit={recibirDano} />
+              </div>
+            )}
+          </AnimatePresence>
+        </Screen>
       </div>
 
       {/* SECCIÓN 4: MENÚ DE BOTONES */}
