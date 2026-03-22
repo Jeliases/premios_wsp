@@ -10,59 +10,65 @@ interface DialogBoxProps {
 export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   const [displayedText, setDisplayedText] = useState('')
   const [isFinished, setIsFinished] = useState(false)
-  const [haTerminadoFrase, setHaTerminadoFrase] = useState(false) // 🔒 El "Seguro"
+  const [haTerminadoFrase, setHaTerminadoFrase] = useState(false) // 🔒 Seguro anti-doble ejecución
   const soundRef = useRef<HTMLAudioElement | null>(null)
 
-  // 1. Cargar sonido de bleep (opcional)
+  // 1. Cargar sonido de bleep (estilo Undertale)
   useEffect(() => {
     soundRef.current = new Audio('/sfx/bleep.mp3')
     soundRef.current.volume = 0.2
   }, [])
 
-  // 2. Resetear estados cuando cambia la frase
+  // 2. ⚡ CORRECCIÓN: Resetear estados y escribir cuando cambia la frase
   useEffect(() => {
-    setDisplayedText('')
-    setIsFinished(false)
-    setHaTerminadoFrase(false) // Abrimos el seguro para la nueva frase
+    // Limpieza inmediata para evitar que se vea el rastro del texto anterior (como "Hablar de bugs")
+    setDisplayedText('');
+    setIsFinished(false);
+    setHaTerminadoFrase(false); 
     
-    let i = 0
+    if (!texto) return;
+
+    let i = 0;
     const interval = setInterval(() => {
-      setDisplayedText(texto.slice(0, i + 1))
+      // Usamos el estado funcional o slice directo para asegurar sincronía
+      setDisplayedText(texto.slice(0, i + 1));
       
-      // Sonido cada 2 letras (estilo RPG)
+      // Sonido cada 2 letras para dar efecto de voz de personaje
       if (soundRef.current && i % 2 === 0 && texto.charAt(i) !== ' ') {
-        soundRef.current.currentTime = 0
-        soundRef.current.play().catch(() => {})
+        soundRef.current.currentTime = 0;
+        soundRef.current.play().catch(() => {});
       }
       
-      i++
+      i++;
       if (i >= texto.length) {
-        clearInterval(interval)
-        setIsFinished(true)
+        clearInterval(interval);
+        setIsFinished(true);
       }
-    }, 35)
+    }, 35); // Velocidad de escritura (ms)
 
-    return () => clearInterval(interval)
-  }, [texto])
+    return () => clearInterval(interval);
+  }, [texto]); // Se dispara CADA VEZ que la prop 'texto' cambia
 
-  // 3. Manejo del Enter con bloqueo de doble ejecución
+  // 3. Manejo del Enter / Click con bloqueo de doble ejecución
   const handleNext = useCallback((e?: KeyboardEvent) => {
-    // Solo permitimos Enter o Z
+    // Solo permitimos Enter o la tecla Z
     if (e && !['Enter', 'z', 'Z'].includes(e.key)) return;
 
     if (isFinished) {
-      // --- EL SEGURO ANTI-SPAM ---
-      if (haTerminadoFrase) return; // Si ya se mandó el onComplete, ignoramos el resto de Enters
+      // --- EL SEGURO ---
+      // Si ya se disparó el onComplete para esta frase, ignoramos más clics
+      if (haTerminadoFrase) return; 
       
       setHaTerminadoFrase(true); // Cerramos el seguro inmediatamente
       onComplete(); 
     } else {
-      // Si todavía escribe, mostramos todo de golpe
+      // Si el usuario presiona mientras todavía escribe, mostramos todo de golpe
       setDisplayedText(texto)
       setIsFinished(true)
     }
   }, [isFinished, haTerminadoFrase, texto, onComplete])
 
+  // Listener para el teclado
   useEffect(() => {
     window.addEventListener('keydown', handleNext)
     return () => window.removeEventListener('keydown', handleNext)

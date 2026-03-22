@@ -133,10 +133,10 @@ export default function BattleMain() {
 
             {(fase === 'dialogo' || mostrandoSalvado) && (
               <DialogBox 
-                key={`dialogo-${amigoActual.id}-${mostrandoSalvado}-${textoRespuesta}`}
+                key={`dialogo-${amigoActual.id}-${textoRespuesta}-${mostrandoSalvado}`}
                 texto={
                   mostrandoSalvado 
-                    ? amigoActual.fraseSalvado
+                    ? amigoActual.fraseSalvado 
                     : (textoRespuesta || amigoActual.frasePerdida)
                 } 
                 onComplete={continuarTrasRespuesta}
