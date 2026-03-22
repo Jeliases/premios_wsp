@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 interface DialogBoxProps {
@@ -10,41 +10,58 @@ interface DialogBoxProps {
 export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   const [displayedText, setDisplayedText] = useState('')
   const [isFinished, setIsFinished] = useState(false)
+  const [haTerminadoFrase, setHaTerminadoFrase] = useState(false) // 🔒 El "Seguro"
+  const soundRef = useRef<HTMLAudioElement | null>(null)
 
-  // 1. Efecto de "Máquina de escribir" corregido para que no se corte
+  // 1. Cargar sonido de bleep (opcional)
+  useEffect(() => {
+    soundRef.current = new Audio('/sfx/bleep.mp3')
+    soundRef.current.volume = 0.2
+  }, [])
+
+  // 2. Resetear estados cuando cambia la frase
   useEffect(() => {
     setDisplayedText('')
     setIsFinished(false)
+    setHaTerminadoFrase(false) // Abrimos el seguro para la nueva frase
     
     let i = 0
     const interval = setInterval(() => {
-      // Usamos slice para asegurar que el texto se mantenga íntegro
       setDisplayedText(texto.slice(0, i + 1))
-      i++
       
+      // Sonido cada 2 letras (estilo RPG)
+      if (soundRef.current && i % 2 === 0 && texto.charAt(i) !== ' ') {
+        soundRef.current.currentTime = 0
+        soundRef.current.play().catch(() => {})
+      }
+      
+      i++
       if (i >= texto.length) {
         clearInterval(interval)
         setIsFinished(true)
       }
-    }, 35) // Velocidad equilibrada
+    }, 35)
 
     return () => clearInterval(interval)
   }, [texto])
 
-  // 2. Lógica del ENTER / Z para avanzar manualmente
+  // 3. Manejo del Enter con bloqueo de doble ejecución
   const handleNext = useCallback((e?: KeyboardEvent) => {
-    // Si viene de teclado, filtramos solo Enter o Z
+    // Solo permitimos Enter o Z
     if (e && !['Enter', 'z', 'Z'].includes(e.key)) return;
 
     if (isFinished) {
-      // Si ya terminó de escribir, avisamos al padre que queremos el siguiente texto
-      onComplete()
+      // --- EL SEGURO ANTI-SPAM ---
+      if (haTerminadoFrase) return; // Si ya se mandó el onComplete, ignoramos el resto de Enters
+      
+      setHaTerminadoFrase(true); // Cerramos el seguro inmediatamente
+      onComplete(); 
     } else {
-      // Si todavía está escribiendo, mostramos todo el texto de una vez
+      // Si todavía escribe, mostramos todo de golpe
       setDisplayedText(texto)
       setIsFinished(true)
     }
-  }, [isFinished, texto, onComplete])
+  }, [isFinished, haTerminadoFrase, texto, onComplete])
 
   useEffect(() => {
     window.addEventListener('keydown', handleNext)
@@ -54,13 +71,11 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   return (
     <div 
       className="relative w-full h-full p-6 cursor-pointer select-none overflow-hidden"
-      onClick={() => handleNext()} // También permite avanzar haciendo click
+      onClick={() => handleNext()} 
     >
       <div className="min-h-[100px]">
-        <p className="text-white text-2xl font-mono leading-relaxed tracking-wide italic text-left">
+        <p className="text-white text-xl md:text-2xl font-mono leading-relaxed tracking-wide italic text-left">
           * {displayedText}
-          
-          {/* Cursor parpadeante estilo Undertale al terminar */}
           {isFinished && (
             <motion.span
               animate={{ opacity: [0, 1, 0] }}
@@ -71,14 +86,13 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         </p>
       </div>
 
-      {/* Indicador visual de que puede avanzar */}
       {isFinished && (
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute bottom-4 right-6 text-[10px] text-zinc-500 uppercase tracking-[0.3em]"
+          className="absolute bottom-4 right-6 text-[10px] text-zinc-600 uppercase tracking-[0.3em]"
         >
-          [ PRESIONA ENTER ]
+          [ ENTER ]
         </motion.p>
       )}
 
