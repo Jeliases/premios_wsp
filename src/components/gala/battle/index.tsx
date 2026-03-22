@@ -45,20 +45,27 @@ export default function BattleMain() {
   };
 
   // 3. EL CORAZÓN DEL FIX: Limpieza absoluta antes de avanzar (Evita el bug de Ronaldo)
-  const continuarTrasRespuesta = () => {
+const continuarTrasRespuesta = () => {
     if (mostrandoSalvado) {
-      // ✅ PASO 1: Apagamos lo visual inmediatamente
+      // 1. Bloqueamos todo y borramos rastros visuales primero
+      setBloqueado(true); 
       setMostrandoSalvado(false); 
       setTextoRespuesta('');      
       
-      // ✅ PASO 2: Pequeña espera (150ms) para que React borre a Ronaldo de la pantalla
+      // 2. IMPORTANTE: Usamos un tiempo un poco mayor (200ms) 
+      // para asegurar que AnimatePresence desmonte a Ronaldo por completo.
       setTimeout(() => {
-        intentarSalvar(true);     // ✅ PASO 3: Recién aquí el Hook carga a Cristian
-        setBloqueado(false);      
-      }, 150);
+        intentarSalvar(true); // 3. RECIÉN AQUÍ cargamos a Cristian
+        
+        // 4. Damos otro pequeño respiro antes de liberar los botones
+        setTimeout(() => {
+          setBloqueado(false);
+        }, 50);
+      }, 200);
 
     } else if (textoRespuesta) {
-      // Caso de fallo: Limpiamos y vamos a fase de ataque (esquivar balas)
+      // Si falló, reseteamos y vamos a ataque
+      setBloqueado(true);
       setTextoRespuesta('');
       setFase('ataque');
       setTimeout(() => {
@@ -66,7 +73,6 @@ export default function BattleMain() {
         setBloqueado(false);
       }, 150);
     } else if (fase === 'dialogo') {
-      // Del texto descriptivo al menú de botones
       setFase('save_menu');
       setBloqueado(false);
     }

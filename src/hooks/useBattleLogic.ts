@@ -101,35 +101,27 @@ export const useBattleLogic = (friendsData: any[]) => {
   }, [playSFX, invulnerable]);
 
   // 5. LÓGICA DE SALVAR
+// 5. LÓGICA DE SALVAR (Versión Corregida)
   const intentarSalvar = (esCorrecto: boolean) => {
-    playSFX('select.mp3');
-    
+    // Ya no usamos setTimeouts aquí, el control lo tiene el index.tsx
     if (esCorrecto) {
-      playSFX('hit.mp3');
-      setDeterminacion(prev => Math.min(prev + 16.67, 100));
+      playSFX('hit.mp3'); //
+      setDeterminacion(prev => Math.min(prev + 16.67, 100)); //
       
-      // Esperamos 4s de animación de salvación (foto color)
-      setTimeout(() => {
-        setFase('ataque');
-        
-        setTimeout(() => {
-          setAmigoIndice(prev => {
-            if (prev + 1 < friendsData.length) {
-              setFase('dialogo');
-              return prev + 1;
-            }
-            return prev;
-          });
-          setPosicionAlma({ x: 0, y: 0 });
-        }, 7000);
-      }, 4000); 
-
+      // Simplemente avanzamos el índice del amigo inmediatamente
+      setAmigoIndice(prev => {
+        if (prev + 1 < friendsData.length) {
+          setFase('dialogo'); // Preparamos la fase para el siguiente amigo[cite: 3]
+          return prev + 1;
+        }
+        return prev;
+      });
+      
+      setPosicionAlma({ x: 0, y: 0 }); // Reseteamos el alma[cite: 3]
     } else {
+      // Si falló, simplemente mandamos a ataque para que esquive
       setFase('ataque');
-      setTimeout(() => {
-        setFase('dialogo');
-        setPosicionAlma({ x: 0, y: 0 });
-      }, 5000);
+      setPosicionAlma({ x: 0, y: 0 });
     }
   };
 
