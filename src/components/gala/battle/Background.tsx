@@ -18,7 +18,7 @@ export default function Background({ esFinal }: BackgroundProps) {
           filter: esFinal ? "hue-rotate(360deg) brightness(1.2)" : "hue-rotate(0deg)"
         }}
         transition={{ 
-          rotate: { repeat: Infinity, duration: esFinal ? 10 : 20, ease: "linear" }, // Gira más rápido al final
+          rotate: { repeat: Infinity, duration: esFinal ? 10 : 20, ease: "linear" }, 
           scale: { repeat: Infinity, duration: 5 },
           filter: { repeat: Infinity, duration: 3 }
         }}

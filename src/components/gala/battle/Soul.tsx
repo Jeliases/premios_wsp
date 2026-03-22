@@ -11,14 +11,15 @@ interface SoulProps {
 export default function Soul({ x, y, estaVibrando }: SoulProps) {
   return (
     <motion.div
-      className="absolute z-50 pointer-events-none"
+      // 🔑 FIX: top-1/2 left-1/2 y márgenes negativos lo anclan al CENTRO.
+      className="absolute top-1/2 left-1/2 -ml-[11px] -mt-[11px] z-50 pointer-events-none"
+      initial={{ x, y }}
       animate={{ 
         x, 
         y,
         scale: estaVibrando ? [1, 0.8, 1.2, 1] : 1,
         opacity: estaVibrando ? [1, 0.5, 1, 0.5, 1] : 1
       }}
-      // 🚀 INERCIA UNDERTALE: stiffness bajo y mass alto para sentir el peso vertical
       transition={{ 
         type: 'spring', 
         stiffness: 700, 
