@@ -13,13 +13,11 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   const [haTerminadoFrase, setHaTerminadoFrase] = useState(false) 
   const soundRef = useRef<HTMLAudioElement | null>(null)
 
-  // Cargar sonido de tipeo
   useEffect(() => {
     soundRef.current = new Audio('/sfx/bleep.mp3')
     soundRef.current.volume = 0.2
   }, [])
 
-  // Efecto de máquina de escribir
   useEffect(() => {
     setDisplayedText('');
     setIsFinished(false);
@@ -46,7 +44,6 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
     return () => clearInterval(interval);
   }, [texto]);
 
-  // Manejo de la tecla Enter / Z para avanzar
   const handleNext = useCallback((e?: KeyboardEvent) => {
     if (e && !['Enter', 'z', 'Z'].includes(e.key)) return;
 
@@ -71,18 +68,23 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
       className="relative w-full h-full p-6 cursor-pointer select-none overflow-hidden bg-black border-[4px] border-white"
       onClick={() => handleNext()} 
     >
-      {/* 🚀 INYECCIÓN DIRECTA DE LA FUENTE (Sin tocar globals.css) */}
+      {/* 🚀 INYECCIÓN FORZADA DE LA FUENTE (Se descarga al instante) */}
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.cdnfonts.com/css/determination-mono');
-        .font-determination {
-          font-family: 'Determination Mono', sans-serif !important;
-          -webkit-font-smoothing: none;
-        }
       `}} />
 
       <div className="min-h-[100px]">
-        {/* 🚀 APLICAMOS LA FUENTE: Sin 'italic', con 'uppercase' y separando letras (tracking-widest) */}
-        <p className="text-white text-xl md:text-3xl font-determination uppercase leading-relaxed tracking-widest text-left" style={{ wordBreak: 'break-word' }}>
+        <p 
+          className="text-white text-xl md:text-3xl uppercase leading-relaxed tracking-widest text-left" 
+          style={{ 
+            /* 🚀 ESTILOS EN LÍNEA: Prioridad máxima, a prueba de fallos */
+            fontFamily: "'Determination Mono', monospace, sans-serif",
+            fontSmooth: "never",
+            WebkitFontSmoothing: "none",
+            textShadow: "none", /* Limpiamos cualquier sombra o glitch raro */
+            wordBreak: "break-word"
+          }}
+        >
           * {displayedText}
           {isFinished && (
             <motion.span
@@ -98,7 +100,8 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute bottom-4 right-6 text-xs text-zinc-500 font-determination tracking-[0.3em]"
+          className="absolute bottom-4 right-6 text-xs text-zinc-500 tracking-[0.3em]"
+          style={{ fontFamily: "'Determination Mono', monospace, sans-serif" }}
         >
           [ ENTER ]
         </motion.p>

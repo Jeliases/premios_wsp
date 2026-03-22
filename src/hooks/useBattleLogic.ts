@@ -9,6 +9,7 @@ export const useBattleLogic = (friendsData: any[]) => {
   const [introIndex, setIntroIndex] = useState(0); 
   const [amigoIndice, setAmigoIndice] = useState(0);
   const [estaVibrando, setEstaVibrando] = useState(false);
+  const [invulnerable, setInvulnerable] = useState(false);
   
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const teclasPresionadas = useRef<{ [key: string]: boolean }>({});
@@ -20,6 +21,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     audio.play().catch(() => {});
   }, []);
 
+  // 1. INICIALIZAR MÚSICA
   useEffect(() => {
     playSFX('encounter.mp3');
     musicRef.current = new Audio('/music/asriel_mix.mp3');
@@ -38,7 +40,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [playSFX]);
 
-  // 🎵 NUEVA FUNCIÓN: Para matar el audio de Asriel desde el index
+  // 🎵 FUNCIÓN PARA MATAR EL AUDIO DESDE EL INDEX
   const detenerAudio = useCallback(() => {
     if (musicRef.current) {
       musicRef.current.pause();
@@ -46,6 +48,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     }
   }, []);
 
+  // 2. LÓGICA DE MOVIMIENTO (Ahora sin el bucle infinito)
   const updateMovimiento = useCallback(() => {
     if (fase === 'ataque') {
       const VELOCIDAD = 7; 
@@ -67,9 +70,9 @@ export const useBattleLogic = (friendsData: any[]) => {
         };
       });
     }
-    requestRef.current = requestAnimationFrame(updateMovimiento);
   }, [fase]);
 
+  // 3. MOTOR DE ANIMACIÓN Y EVENTOS DE TECLADO
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => { teclasPresionadas.current[e.key] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { teclasPresionadas.current[e.key] = false; };
@@ -77,6 +80,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     
+    // Aquí está el único motor que hace girar el juego
     const tick = () => {
       updateMovimiento();
       requestRef.current = requestAnimationFrame(tick);
@@ -90,8 +94,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     };
   }, [updateMovimiento]);
 
-  const [invulnerable, setInvulnerable] = useState(false);
-
+  // 4. RECIBIR DAÑO
   const recibirDano = useCallback(() => {
     if (invulnerable) return;
     playSFX('damage.mp3');
@@ -107,6 +110,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     setTimeout(() => setInvulnerable(false), 800); 
   }, [playSFX, invulnerable]);
 
+  // 5. INTENTAR SALVAR (BOTONES)
   const intentarSalvar = (esCorrecto: boolean) => {
     playSFX('select.mp3');
     
@@ -145,7 +149,7 @@ export const useBattleLogic = (friendsData: any[]) => {
     recibirDano,
     estaVibrando,
     determinacion,
-    amigoIndice, // Exponemos amigoIndice para que index.tsx sepa cuándo cambiar a Ded.webp
-    detenerAudio // Exponemos detenerAudio para el final
+    amigoIndice,
+    detenerAudio
   };
 };
