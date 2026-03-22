@@ -11,14 +11,14 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   const [displayedText, setDisplayedText] = useState('')
   const [isFinished, setIsFinished] = useState(false)
 
-  // Resetear y escribir cuando cambia el texto
+  // 1. Efecto de "Máquina de escribir" corregido para que no se corte
   useEffect(() => {
     setDisplayedText('')
     setIsFinished(false)
     
     let i = 0
     const interval = setInterval(() => {
-      // Usamos el texto original para evitar recortes por estados intermedios
+      // Usamos slice para asegurar que el texto se mantenga íntegro
       setDisplayedText(texto.slice(0, i + 1))
       i++
       
@@ -26,37 +26,41 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         clearInterval(interval)
         setIsFinished(true)
       }
-    }, 40) // Velocidad estándar de Undertale
+    }, 35) // Velocidad equilibrada
 
     return () => clearInterval(interval)
   }, [texto])
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === 'z' || e.key === 'Z') {
-      if (isFinished) {
-        onComplete()
-      } else {
-        // Saltar animación y mostrar todo
-        setDisplayedText(texto)
-        setIsFinished(true)
-      }
+  // 2. Lógica del ENTER / Z para avanzar manualmente
+  const handleNext = useCallback((e?: KeyboardEvent) => {
+    // Si viene de teclado, filtramos solo Enter o Z
+    if (e && !['Enter', 'z', 'Z'].includes(e.key)) return;
+
+    if (isFinished) {
+      // Si ya terminó de escribir, avisamos al padre que queremos el siguiente texto
+      onComplete()
+    } else {
+      // Si todavía está escribiendo, mostramos todo el texto de una vez
+      setDisplayedText(texto)
+      setIsFinished(true)
     }
   }, [isFinished, texto, onComplete])
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+    window.addEventListener('keydown', handleNext)
+    return () => window.removeEventListener('keydown', handleNext)
+  }, [handleNext])
 
   return (
     <div 
-      className="w-full h-full p-5 cursor-pointer select-none overflow-hidden"
-      onClick={() => handleKeyDown({ key: 'Enter' } as any)}
+      className="relative w-full h-full p-6 cursor-pointer select-none overflow-hidden"
+      onClick={() => handleNext()} // También permite avanzar haciendo click
     >
-      {/* Min-height para que la caja no colapse mientras escribe */}
       <div className="min-h-[100px]">
         <p className="text-white text-2xl font-mono leading-relaxed tracking-wide italic text-left">
           * {displayedText}
+          
+          {/* Cursor parpadeante estilo Undertale al terminar */}
           {isFinished && (
             <motion.span
               animate={{ opacity: [0, 1, 0] }}
@@ -67,11 +71,23 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         </p>
       </div>
 
+      {/* Indicador visual de que puede avanzar */}
       {isFinished && (
-        <p className="absolute bottom-2 right-4 text-[10px] text-gray-500 uppercase tracking-[0.2em] animate-pulse">
-          [ Enter ]
-        </p>
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute bottom-4 right-6 text-[10px] text-zinc-500 uppercase tracking-[0.3em]"
+        >
+          [ PRESIONA ENTER ]
+        </motion.p>
       )}
+
+      <style jsx>{`
+        p {
+          text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+          word-break: break-word;
+        }
+      `}</style>
     </div>
   )
 }
