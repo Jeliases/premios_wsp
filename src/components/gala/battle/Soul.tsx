@@ -1,3 +1,4 @@
+// src/components/gala/battle/Soul.tsx
 'use client'
 import { motion } from 'framer-motion';
 
@@ -14,19 +15,22 @@ export default function Soul({ x, y, estaVibrando }: SoulProps) {
       animate={{ 
         x, 
         y,
-        // Si recibe daño, parpadea y se encoge un poco
         scale: estaVibrando ? [1, 0.8, 1.2, 1] : 1,
         opacity: estaVibrando ? [1, 0.5, 1, 0.5, 1] : 1
       }}
-      // Transición ultra rápida para que se sienta responsivo
-      transition={{ type: 'spring', stiffness: 1200, damping: 40 }}
-      style={{ width: '20px', height: '20px' }}
+      // 🚀 INERCIA UNDERTALE: stiffness bajo y mass alto para sentir el peso vertical
+      transition={{ 
+        type: 'spring', 
+        stiffness: 700, 
+        damping: 35,
+        mass: 0.8 
+      }}
+      style={{ width: '22px', height: '22px' }}
     >
-      {/* Este SVG dibuja el corazón pixelado exacto de Undertale */}
       <svg 
         viewBox="0 0 10 9" 
         fill="#ff0000" 
-        className="w-full h-full"
+        className="w-full h-full drop-shadow-[0_0_8px_rgba(255,0,0,0.9)]"
         style={{ imageRendering: 'pixelated' }}
       >
         <path d="M2,0 h2 v1 h1 v1 h1 v-1 h2 v1 h1 v1 h1 v3 h-1 v1 h-1 v1 h-1 v1 h-2 v-1 h-1 v-1 h-1 v-1 h-1 v-3 h1 v-1 h1 v-1 z" />

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useBattleLogic } from '@/hooks/useBattleLogic';
 import { BATTLE_STORY } from '@/lib/battle-config'; 
 import Screen from './Screen';
@@ -11,8 +11,10 @@ import Enemy from './Enemy';
 import Background from './Background';
 import SoulGallery from './SoulGallery'; 
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export default function BattleMain() {
+  const router = useRouter();
   const { 
     posicionAlma, fase, setFase, introIndex, setIntroIndex,
     hp, amigoActual, intentarSalvar, recibirDano, determinacion, estaVibrando
@@ -21,8 +23,28 @@ export default function BattleMain() {
   const [mostrandoSalvado, setMostrandoSalvado] = useState(false);
   const [textoRespuesta, setTextoRespuesta] = useState('');
   const [bloqueado, setBloqueado] = useState(false);
+  const endingMusicRef = useRef<HTMLAudioElement | null>(null);
 
-  // 1. Avance de la intro de Asriel
+  // 🔑 LÓGICA DE FASE VISUAL: Cambia a la forma final a mitad de la lista de amigos
+  const esFaseFinal = useMemo(() => {
+    if (!amigoActual) return false;
+    const indice = BATTLE_STORY.amigos.findIndex(a => a.id === amigoActual.id);
+    return indice >= 3; // Cambia a Ded.webp a partir del 4to amigo
+  }, [amigoActual]);
+
+  // --- LÓGICA DE CIERRE FINAL ---
+  const iniciarFinal = () => {
+    endingMusicRef.current = new Audio('/music/histheme.mp3');
+    endingMusicRef.current.volume = 0.5;
+    endingMusicRef.current.play().catch(e => console.log("Audio play deferred"));
+
+    setFase('ending' as any);
+    
+    setTimeout(() => {
+      router.push('/live');
+    }, 18000);
+  };
+
   const avanzarDialogoIntro = () => {
     if (introIndex < BATTLE_STORY.intro.length - 1) {
       setIntroIndex(introIndex + 1);
@@ -31,7 +53,6 @@ export default function BattleMain() {
     }
   };
 
-  // 2. Selección de acción (HOPE/DREAMS)
   const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
     if (bloqueado) return;
     setBloqueado(true); 
@@ -40,28 +61,30 @@ export default function BattleMain() {
     if (esCorrecta) {
       setMostrandoSalvado(true);
     } else {
-      // Forzamos fase diálogo para mostrar el texto de error
       setFase('dialogo'); 
     }
   };
 
-  // 3. Limpieza absoluta antes de avanzar
   const continuarTrasRespuesta = () => {
     if (mostrandoSalvado) {
       setBloqueado(true); 
       setMostrandoSalvado(false); 
       setTextoRespuesta('');      
       
-      // Delay para desmontar visuales antes de cambiar datos
       setTimeout(() => {
-        intentarSalvar(true); 
-        setTimeout(() => {
-          setBloqueado(false);
-        }, 50);
+        const esUltimo = amigoActual.id === BATTLE_STORY.amigos[BATTLE_STORY.amigos.length - 1].id;
+        
+        if (esUltimo) {
+          iniciarFinal();
+        } else {
+          intentarSalvar(true); 
+          setTimeout(() => {
+            setBloqueado(false);
+          }, 50);
+        }
       }, 200);
 
     } else if (textoRespuesta) {
-      // Caso de error: Limpiamos texto y vamos a ataque
       setBloqueado(true);
       setTextoRespuesta('');
       setFase('ataque');
@@ -75,23 +98,71 @@ export default function BattleMain() {
     }
   };
 
+  // --- PANTALLA DE CRÉDITOS (CAYENDO) ---
+  if (fase === ('ending' as any)) {
+    return (
+      <div className="fixed inset-0 bg-black z-[300] flex flex-col items-center justify-center overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 3 }}
+          className="flex flex-col items-center z-10"
+        >
+          <img 
+            src="/images/amigos/final.png" 
+            className="w-[300px] md:w-[500px] object-contain mb-8 rounded-lg shadow-[0_0_80px_rgba(255,255,255,0.1)]"
+            alt="Final"
+          />
+          
+          <div className="h-[350px] relative w-full max-w-2xl overflow-hidden border-t border-white/10">
+            <motion.div
+              initial={{ y: -600 }}
+              animate={{ y: 400 }}
+              transition={{ duration: 16, ease: "linear" }}
+              className="space-y-10 text-white font-mono uppercase tracking-[0.25em] text-center italic"
+            >
+              <p className="text-yellow-400 text-3xl font-black shadow-lg">¡GALA COMPLETADA!</p>
+              <p className="text-xl">Habéis salvado los vínculos.</p>
+              <p>Gracias a toda la comunidad por estar presente.</p>
+              <p>Por cada risa, cada clip y cada momento rancio...</p>
+              <p>Sin vosotros, nada de esto tendría sentido.</p>
+              <div className="pt-10">
+                <p className="text-pink-500 font-black text-2xl">STAFF WSP AWARDS 2026</p>
+                <p className="text-sm mt-2">Indira • Luis Elias • The Soul • Elviscocho</p>
+              </div>
+              <p className="pt-24 opacity-30 text-[10px] tracking-[0.8em]">RECONECTANDO CON EL LIVE...</p>
+            </motion.div>
+          </div>
+        </motion.div>
+        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[length:40px_40px]" />
+      </div>
+    );
+  }
+
   if (!amigoActual) return <div className="bg-black min-h-screen" />;
 
   return (
     <div className="relative flex flex-col items-center justify-between min-h-screen bg-black text-white font-mono overflow-hidden py-4">
-      <Background />
+      {/* Background que reacciona a la fase final */}
+      <Background esFinal={esFaseFinal} />
       
       {/* SECCIÓN 1: GALERÍA DE ALMAS */}
       <div className="w-full z-30 h-[120px] flex items-center justify-center p-2">
         <SoulGallery amigos={BATTLE_STORY.amigos} determinacion={determinacion} />
       </div>
 
-      {/* SECCIÓN 2: PERSONAJE */}
+      {/* SECCIÓN 2: PERSONAJE / ENEMIGO DINÁMICO */}
       <div className="flex-1 w-full flex flex-col items-center justify-center relative min-h-[280px] z-10">
         <AnimatePresence mode="wait">
           {(fase === 'intro' || fase === 'ataque') && !mostrandoSalvado ? (
-            <motion.div key="asriel-enemy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Enemy fase={fase} />
+            <motion.div 
+              key={esFaseFinal ? 'ded' : 'asriel'} 
+              initial={{ opacity: 0, scale: 0.9 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0 }}
+            >
+              {/* Le pasamos el sprite correcto según el progreso */}
+              <Enemy fase={fase} sprite={esFaseFinal ? '/images/Ded.webp' : '/images/Asriel.webp'} />
             </motion.div>
           ) : (
             <motion.div 
@@ -122,34 +193,53 @@ export default function BattleMain() {
       {/* SECCIÓN 3: CUADRO DE DIÁLOGO (SCREEN) */}
       <div className="z-20 w-full max-w-[620px] px-4 h-[200px]">
         <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
-          <AnimatePresence mode="wait">
-            {fase === 'intro' && (
-              <DialogBox 
-                key={`intro-${introIndex}`}
-                texto={BATTLE_STORY.intro[introIndex]}
-                onComplete={avanzarDialogoIntro}
-              />
-            )}
+            <AnimatePresence mode="wait">
+              
+              {/* INTRO */}
+              {fase === 'intro' && (
+                <DialogBox 
+                  key={`intro-${introIndex}`}
+                  texto={BATTLE_STORY.intro[introIndex]}
+                  onComplete={avanzarDialogoIntro}
+                />
+              )}
 
-            {(fase === 'dialogo' || mostrandoSalvado) && (
-              <DialogBox 
-                key={`dialogo-${amigoActual.id}-${textoRespuesta}-${mostrandoSalvado}`}
-                texto={
-                  mostrandoSalvado 
-                    ? amigoActual.fraseSalvado 
-                    : (textoRespuesta || amigoActual.frasePerdida)
-                } 
-                onComplete={continuarTrasRespuesta}
-              />
-            )}
+              {/* DIÁLOGO / RESPUESTAS */}
+              {(fase === 'dialogo' || mostrandoSalvado) && (
+                <DialogBox 
+                  key={`dialogo-${amigoActual.id}-${textoRespuesta}-${mostrandoSalvado}`}
+                  texto={
+                    mostrandoSalvado 
+                      ? amigoActual.fraseSalvado 
+                      : (textoRespuesta || amigoActual.frasePerdida)
+                  } 
+                  onComplete={continuarTrasRespuesta}
+                />
+              )}
 
-            {fase === 'ataque' && (
-              <div key="battle-box" className="relative h-full w-full">
-                <Soul x={posicionAlma.x} y={posicionAlma.y} estaVibrando={estaVibrando} />
-                <Attacks almaPos={posicionAlma} onHit={recibirDano} />
-              </div>
-            )}
-          </AnimatePresence>
+              {/* ARENA DE COMBATE (Ahora con bordes blancos y sin saltos) */}
+              {fase === 'ataque' && (
+                <motion.div 
+                  key="battle-arena" 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="relative h-full w-full bg-black border-[4px] border-white overflow-hidden"
+                >
+                  <Soul 
+                    x={posicionAlma.x} 
+                    y={posicionAlma.y} 
+                    estaVibrando={estaVibrando} 
+                  />
+                  <Attacks 
+                    almaPos={posicionAlma} 
+                    onHit={recibirDano} 
+                    hardMode={esFaseFinal} 
+                  />
+                </motion.div>
+              )}
+
+            </AnimatePresence>
         </Screen>
       </div>
 
