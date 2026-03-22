@@ -19,8 +19,8 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
   }, [])
 
   useEffect(() => {
-    setDisplayedText('');
-    setIsFinished(false);
+    setDisplayedText(''); 
+    setIsFinished(false); 
     setHaTerminadoFrase(false); 
     
     if (!texto) return;
@@ -35,26 +35,25 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
       }
       
       i++;
-      if (i >= texto.length) {
-        clearInterval(interval);
-        setIsFinished(true);
+      if (i >= texto.length) { 
+        clearInterval(interval); 
+        setIsFinished(true); 
       }
     }, 35); 
-
+    
     return () => clearInterval(interval);
   }, [texto]);
 
   const handleNext = useCallback((e?: KeyboardEvent) => {
     if (e && !['Enter', 'z', 'Z'].includes(e.key)) return;
-
+    
     if (isFinished) {
       if (haTerminadoFrase) return; 
-      
       setHaTerminadoFrase(true); 
       onComplete(); 
     } else {
-      setDisplayedText(texto)
-      setIsFinished(true)
+      setDisplayedText(texto); 
+      setIsFinished(true);
     }
   }, [isFinished, haTerminadoFrase, texto, onComplete])
 
@@ -68,20 +67,18 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
       className="relative w-full h-full p-6 cursor-pointer select-none overflow-hidden bg-black border-[4px] border-white"
       onClick={() => handleNext()} 
     >
-      {/* 🚀 INYECCIÓN FORZADA DE LA FUENTE (Se descarga al instante) */}
+      {/* 🚀 GOOGLE FONTS INBLOQUEABLE */}
       <style dangerouslySetInnerHTML={{__html: `
-        @import url('https://fonts.cdnfonts.com/css/determination-mono');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
       `}} />
 
       <div className="min-h-[100px]">
         <p 
-          className="text-white text-xl md:text-3xl uppercase leading-relaxed tracking-widest text-left" 
+          className="text-white text-left uppercase leading-loose" 
           style={{ 
-            /* 🚀 ESTILOS EN LÍNEA: Prioridad máxima, a prueba de fallos */
-            fontFamily: "'Determination Mono', monospace, sans-serif",
-            fontSmooth: "never",
-            WebkitFontSmoothing: "none",
-            textShadow: "none", /* Limpiamos cualquier sombra o glitch raro */
+            fontFamily: "'Press Start 2P', cursive", 
+            fontSize: "14px", 
+            textShadow: "none",
             wordBreak: "break-word"
           }}
         >
@@ -90,7 +87,7 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
             <motion.span
               animate={{ opacity: [0, 1, 0] }}
               transition={{ repeat: Infinity, duration: 0.8 }}
-              className="inline-block ml-2 w-3 h-6 bg-white align-middle"
+              className="inline-block ml-2 w-3 h-5 bg-white align-middle"
             />
           )}
         </p>
@@ -100,8 +97,8 @@ export default function DialogBox({ texto, onComplete }: DialogBoxProps) {
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute bottom-4 right-6 text-xs text-zinc-500 tracking-[0.3em]"
-          style={{ fontFamily: "'Determination Mono', monospace, sans-serif" }}
+          className="absolute bottom-4 right-6 text-zinc-500"
+          style={{ fontFamily: "'Press Start 2P', cursive", fontSize: "10px" }}
         >
           [ ENTER ]
         </motion.p>

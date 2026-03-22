@@ -24,9 +24,12 @@ const ENDING_STORY = [
 
 export default function BattleMain() {
   const router = useRouter();
+  
+  // 🚀 IMPORTAMOS detenerAudio AQUÍ
   const { 
     posicionAlma, fase, setFase, introIndex, setIntroIndex,
-    hp, amigoActual, intentarSalvar, recibirDano, determinacion, estaVibrando
+    hp, amigoActual, intentarSalvar, recibirDano, determinacion, estaVibrando,
+    detenerAudio
   } = useBattleLogic(BATTLE_STORY.amigos);
 
   const [mostrandoSalvado, setMostrandoSalvado] = useState(false);
@@ -42,15 +45,17 @@ export default function BattleMain() {
     return indice >= 3; 
   }, [amigoActual]);
 
-  // FIX DEFINITIVO DEL SCROLL[cite: 10]
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
-        e.preventDefault(); 
+        e.preventDefault();
       }
     };
+    
     window.addEventListener('keydown', handleKeyDown, { passive: false });
+    
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';
@@ -58,6 +63,11 @@ export default function BattleMain() {
   }, []);
 
   const iniciarFinal = () => {
+    // 🚀 APAGAMOS A ASRIEL DEFINITIVAMENTE ANTES DE INICIAR HIS THEME
+    if (detenerAudio) {
+      detenerAudio();
+    }
+
     document.querySelectorAll('audio').forEach(a => {
       a.pause();
       a.currentTime = 0;
@@ -66,7 +76,7 @@ export default function BattleMain() {
     endingMusicRef.current = new Audio('/music/histheme.mp3');
     endingMusicRef.current.volume = 0.5;
     endingMusicRef.current.play().catch(e => console.log("Audio play deferred"));
-
+    
     setFase('ending' as any);
   };
 
@@ -88,9 +98,9 @@ export default function BattleMain() {
 
   const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
     if (bloqueado) return;
-    setBloqueado(true); 
+    setBloqueado(true);
     setTextoRespuesta(respuesta);
-
+    
     if (esCorrecta) {
       setMostrandoSalvado(true);
     } else {
@@ -100,31 +110,30 @@ export default function BattleMain() {
 
   const continuarTrasRespuesta = () => {
     if (mostrandoSalvado) {
-      setBloqueado(true); 
-      setMostrandoSalvado(false); 
+      setBloqueado(true);
+      setMostrandoSalvado(false);
       setTextoRespuesta('');      
       
       setTimeout(() => {
         const esUltimo = amigoActual.id === BATTLE_STORY.amigos[BATTLE_STORY.amigos.length - 1].id;
-        
         if (esUltimo) {
           iniciarFinal();
         } else {
-          intentarSalvar(true); 
-          setTimeout(() => {
-            setBloqueado(false);
-          }, 50);
+          intentarSalvar(true);
+          setTimeout(() => setBloqueado(false), 50);
         }
       }, 200);
-
+      
     } else if (textoRespuesta) {
       setBloqueado(true);
       setTextoRespuesta('');
       setFase('ataque');
+      
       setTimeout(() => {
         intentarSalvar(false);
         setBloqueado(false);
       }, 150);
+      
     } else if (fase === 'dialogo') {
       setFase('save_menu');
       setBloqueado(false);
@@ -135,17 +144,16 @@ export default function BattleMain() {
     return (
       <div className="fixed inset-0 bg-black z-[300] flex flex-col items-center justify-center overflow-hidden p-4">
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 3 }}
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          transition={{ duration: 3 }} 
           className="flex flex-col items-center w-full max-w-[620px] z-10"
         >
           <img 
             src="/images/amigos/final.png" 
-            className="w-[300px] md:w-[450px] object-contain mb-12 rounded-lg shadow-[0_0_80px_rgba(255,255,255,0.1)]"
-            alt="Final"
+            className="w-[300px] md:w-[450px] object-contain mb-12 rounded-lg shadow-[0_0_80px_rgba(255,255,255,0.1)]" 
+            alt="Final" 
           />
-          
           <div className="w-full h-[200px]">
             <Screen fase="salvacion">
               <AnimatePresence mode="wait">
@@ -165,13 +173,13 @@ export default function BattleMain() {
   if (!amigoActual) return <div className="bg-black min-h-screen" />;
 
   return (
-    <div className="relative flex flex-col items-center justify-between min-h-screen bg-black text-white font-mono overflow-hidden py-4">
+    <div className="relative flex flex-col items-center justify-between min-h-screen bg-black text-white overflow-hidden py-4">
       <Background esFinal={esFaseFinal} />
       
       <div className="w-full z-30 h-[120px] flex items-center justify-center p-2">
         <SoulGallery amigos={BATTLE_STORY.amigos} determinacion={determinacion} />
       </div>
-
+      
       <div className="flex-1 w-full flex flex-col items-center justify-center relative min-h-[280px] z-10">
         <AnimatePresence mode="wait">
           {(fase === 'intro' || fase === 'ataque') && !mostrandoSalvado ? (
@@ -185,21 +193,24 @@ export default function BattleMain() {
             </motion.div>
           ) : (
             <motion.div 
-              key={`sprite-${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
+              key={`sprite-${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`} 
+              initial={{ opacity: 0, scale: 0.8 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              exit={{ opacity: 0 }} 
               className="flex flex-col items-center"
             >
               <img 
-                src={mostrandoSalvado ? amigoActual.fotoColor : amigoActual.fotoX}
-                className={`w-52 h-52 md:w-64 md:h-64 object-contain border-4 shadow-2xl transition-all ${
-                  mostrandoSalvado ? 'border-yellow-400 shadow-[0_0_30px_gold]' : 'border-red-600 grayscale brightness-50'
-                }`}
-                style={{ imageRendering: 'pixelated' }}
+                src={mostrandoSalvado ? amigoActual.fotoColor : amigoActual.fotoX} 
+                className={`w-52 h-52 md:w-64 md:h-64 object-contain border-4 shadow-2xl transition-all ${mostrandoSalvado ? 'border-yellow-400 shadow-[0_0_30px_gold]' : 'border-red-600 grayscale brightness-50'}`} 
+                style={{ imageRendering: 'pixelated' }} 
               />
               <div className="flex items-center gap-4 mt-4">
-                <span className="text-yellow-400 italic font-black">HP {hp}/20</span>
+                <span 
+                  className="text-yellow-400 font-black text-xl tracking-widest" 
+                  style={{ fontFamily: "'Press Start 2P', cursive" }}
+                >
+                  HP {hp}/20
+                </span>
                 <div className="w-40 h-3 bg-red-900 border border-white">
                   <div className="h-full bg-yellow-400" style={{ width: `${(hp/20)*100}%` }} />
                 </div>
@@ -208,66 +219,45 @@ export default function BattleMain() {
           )}
         </AnimatePresence>
       </div>
-
+      
       <div className="z-20 w-full max-w-[620px] px-4 h-[200px]">
         <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
             <AnimatePresence mode="wait">
-              
               {fase === 'intro' && (
                 <DialogBox 
-                  key={`intro-${introIndex}`}
-                  texto={BATTLE_STORY.intro[introIndex]}
-                  onComplete={avanzarDialogoIntro}
+                  key={`intro-${introIndex}`} 
+                  texto={BATTLE_STORY.intro[introIndex]} 
+                  onComplete={avanzarDialogoIntro} 
                 />
               )}
-
               {(fase === 'dialogo' || mostrandoSalvado) && (
                 <DialogBox 
-                  key={`dialogo-${amigoActual.id}-${textoRespuesta}-${mostrandoSalvado}`}
-                  texto={
-                    mostrandoSalvado 
-                      ? amigoActual.fraseSalvado 
-                      : (textoRespuesta || amigoActual.frasePerdida)
-                  } 
-                  onComplete={continuarTrasRespuesta}
+                  key={`dialogo-${amigoActual.id}-${textoRespuesta}-${mostrandoSalvado}`} 
+                  texto={mostrandoSalvado ? amigoActual.fraseSalvado : (textoRespuesta || amigoActual.frasePerdida)} 
+                  onComplete={continuarTrasRespuesta} 
                 />
               )}
-
               {fase === 'ataque' && (
                 <motion.div 
                   key="battle-arena" 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  exit={{ opacity: 0 }} 
                   className="relative h-full w-full bg-black border-[4px] border-white overflow-hidden"
                 >
-                  <Soul 
-                    x={posicionAlma.x} 
-                    y={posicionAlma.y} 
-                    estaVibrando={estaVibrando} 
-                  />
-                  <Attacks 
-                    almaPos={posicionAlma} 
-                    onHit={recibirDano} 
-                    hardMode={esFaseFinal} 
-                  />
+                  <Soul x={posicionAlma.x} y={posicionAlma.y} estaVibrando={estaVibrando} />
+                  <Attacks almaPos={posicionAlma} onHit={recibirDano} hardMode={esFaseFinal} />
                 </motion.div>
               )}
-
             </AnimatePresence>
         </Screen>
       </div>
-
+      
       <div className="z-20 h-[140px] w-full flex items-center justify-center p-4">
         {fase === 'save_menu' && !mostrandoSalvado && !bloqueado && (
           <Actions amigo={amigoActual} onAction={manejarAccion} />
         )}
       </div>
-
-      <style jsx global>{`
-        @import url('https://fonts.cdnfonts.com/css/determination-mono');
-        * { font-family: 'Determination Mono', monospace !important; }
-      `}</style>
     </div>
   );
 }
