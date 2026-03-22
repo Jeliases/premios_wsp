@@ -35,7 +35,7 @@ export default function Actions({ amigo, onAction }: ActionsProps) {
         <button
           key={`${amigo.nombre}-action-${index}`}
           disabled={yaSeleccionado} // 🔒 Bloqueo físico del botón
-          onClick={() => handleSelection(opcion.esCorrecta, opcion.texto)}
+          onClick={() => handleSelection(opcion.esCorrecta, opcion.respuesta)}
           onMouseEnter={() => {
             if (!yaSeleccionado) {
               const audio = new Audio('/sfx/select.mp3')
