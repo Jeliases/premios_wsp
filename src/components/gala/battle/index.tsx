@@ -34,41 +34,39 @@ export default function BattleMain() {
   // 2. Selección de acción (HOPE/DREAMS)
   const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
     if (bloqueado) return;
-    setBloqueado(true); // 🔒 Bloqueamos para que no puedan spamear clicks
+    setBloqueado(true); 
     setTextoRespuesta(respuesta);
 
     if (esCorrecta) {
       setMostrandoSalvado(true);
-      // No llamamos a intentarSalvar aquí todavía, esperamos al ENTER.
     } else {
       setFase('dialogo'); 
-      // El bloqueo se quita en continuarTrasRespuesta
     }
   };
 
-  // 3. EL CORAZÓN DEL FIX: Esta función limpia TODO antes de pasar al siguiente
+  // 3. EL CORAZÓN DEL FIX: Limpieza absoluta antes de avanzar (Evita el bug de Ronaldo)
   const continuarTrasRespuesta = () => {
     if (mostrandoSalvado) {
-      // ✅ PASO A PASO PARA NO BUGUEAR:
-      setMostrandoSalvado(false); // 1. Quitamos la foto a color
-      setTextoRespuesta('');      // 2. Borramos el texto de respuesta
+      // ✅ PASO 1: Apagamos lo visual inmediatamente
+      setMostrandoSalvado(false); 
+      setTextoRespuesta('');      
       
-      // 3. Le damos un respiro a React para que limpie el DOM
+      // ✅ PASO 2: Pequeña espera (150ms) para que React borre a Ronaldo de la pantalla
       setTimeout(() => {
-        intentarSalvar(true);     // 4. Cambiamos al siguiente amigo en el Hook
-        setBloqueado(false);      // 5. Liberamos el bloqueo
-      }, 100);
+        intentarSalvar(true);     // ✅ PASO 3: Recién aquí el Hook carga a Cristian
+        setBloqueado(false);      
+      }, 150);
 
     } else if (textoRespuesta) {
-      // Si falló, reseteamos y vamos a ataque
+      // Caso de fallo: Limpiamos y vamos a fase de ataque (esquivar balas)
       setTextoRespuesta('');
       setFase('ataque');
       setTimeout(() => {
         intentarSalvar(false);
         setBloqueado(false);
-      }, 100);
+      }, 150);
     } else if (fase === 'dialogo') {
-      // Diálogo inicial -> ir al menú
+      // Del texto descriptivo al menú de botones
       setFase('save_menu');
       setBloqueado(false);
     }
@@ -80,12 +78,12 @@ export default function BattleMain() {
     <div className="relative flex flex-col items-center justify-between min-h-screen bg-black text-white font-mono overflow-hidden py-4">
       <Background />
       
-      {/* SECCIÓN 1: GALERÍA (Fija arriba para que no se mueva el layout) */}
+      {/* SECCIÓN 1: GALERÍA DE ALMAS */}
       <div className="w-full z-30 h-[120px] flex items-center justify-center p-2">
         <SoulGallery amigos={BATTLE_STORY.amigos} determinacion={determinacion} />
       </div>
 
-      {/* SECCIÓN 2: SPRITE (Uso de Keys para destruir el bug de la imagen X) */}
+      {/* SECCIÓN 2: PERSONAJE (Imagen X o Color) */}
       <div className="flex-1 w-full flex flex-col items-center justify-center relative min-h-[280px] z-10">
         <AnimatePresence mode="wait">
           {(fase === 'intro' || fase === 'ataque') && !mostrandoSalvado ? (
@@ -94,9 +92,8 @@ export default function BattleMain() {
             </motion.div>
           ) : (
             <motion.div 
-              // 🔑 KEY MAESTRA: Si el nombre del amigo cambia, el componente SE DESTRUYE y se recrea.
-              // Esto evita que Ronaldo se quede pegado cuando ya toca Indira.
-              key={`${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`} 
+              // 🔑 KEY MAESTRA: Si cambia el nombre, el componente se destruye y renace limpio
+              key={`sprite-${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`} 
               initial={{ opacity: 0, scale: 0.8 }} 
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
@@ -120,7 +117,7 @@ export default function BattleMain() {
         </AnimatePresence>
       </div>
 
-      {/* SECCIÓN 3: SCREEN (Diálogos) */}
+      {/* SECCIÓN 3: CUADRO DE DIÁLOGO (SCREEN) */}
       <div className="z-20 w-full max-w-[620px] px-4 h-[200px]">
         <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
           <AnimatePresence mode="wait">
@@ -134,8 +131,8 @@ export default function BattleMain() {
 
             {(fase === 'dialogo' || mostrandoSalvado) && (
               <DialogBox 
-                // 🔑 Otra Key para que el texto se reinicie sí o sí
-                key={amigoActual.nombre + (mostrandoSalvado ? 'save' : 'lost')}
+                // 🔑 OTRA KEY MAESTRA: Para que el texto no se repita
+                key={`dialogo-${amigoActual.nombre}-${mostrandoSalvado ? 'saved' : 'lost'}`}
                 texto={mostrandoSalvado ? amigoActual.fraseSalvado : (textoRespuesta || amigoActual.frasePerdida)} 
                 onComplete={continuarTrasRespuesta}
               />
@@ -151,7 +148,7 @@ export default function BattleMain() {
         </Screen>
       </div>
 
-      {/* SECCIÓN 4: BOTONES (Fijos abajo) */}
+      {/* SECCIÓN 4: MENÚ DE BOTONES */}
       <div className="z-20 h-[140px] w-full flex items-center justify-center p-4">
         {fase === 'save_menu' && !mostrandoSalvado && !bloqueado && (
           <Actions amigo={amigoActual} onAction={manejarAccion} />
