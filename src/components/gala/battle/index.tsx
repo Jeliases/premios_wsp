@@ -21,12 +21,10 @@ export default function BattleMain() {
   const [mostrandoSalvado, setMostrandoSalvado] = useState(false);
   const [textoRespuesta, setTextoRespuesta] = useState('');
   const [sacudirPantalla, setSacudirPantalla] = useState(false);
-  
-  // ✅ 1. EL LOCK (BLOQUEO ANTI-SPAM)
   const [bloqueado, setBloqueado] = useState(false);
 
+  // 1. Avance de la intro de Asriel
   const avanzarDialogoIntro = () => {
-    if (bloqueado) return;
     if (introIndex < BATTLE_STORY.intro.length - 1) {
       setIntroIndex(introIndex + 1);
     } else {
@@ -34,85 +32,73 @@ export default function BattleMain() {
     }
   };
 
-  // ✅ 2. MODIFICACIÓN MANEJAR ACCIÓN (Con Lock)
+  // 2. Selección de acción (HOPE/DREAMS)
   const manejarAccion = (esCorrecta: boolean, respuesta: string) => {
-    if (bloqueado) return; // 🚫 Bloquea si ya hay algo procesándose
-
-    setBloqueado(true); // 🔒 Cerramos el paso
+    if (bloqueado) return;
+    setBloqueado(true);
     setTextoRespuesta(respuesta);
 
     if (esCorrecta) {
       setMostrandoSalvado(true);
-      // No desbloqueamos aquí, esperamos al Enter del DialogBox
     } else {
       setSacudirPantalla(true);
       setFase('dialogo'); 
       setTimeout(() => setSacudirPantalla(false), 800);
-      // El bloqueo se quita en continuarTrasRespuesta
     }
   };
 
-
-
-const continuarTrasRespuesta = () => {
-  // Si el lock anti-spam está activo, no hacemos nada
-  if (bloqueado) return;
-
-  if (mostrandoSalvado) {
-    // Caso 1: Acabas de salvar al amigo (Foto Color)
-    setMostrandoSalvado(false);
-    setTextoRespuesta('');
-    setTimeout(() => {
-      intentarSalvar(true);
+  // 3. Continuar tras presionar ENTER (Fix de avance)
+  const continuarTrasRespuesta = () => {
+    if (mostrandoSalvado) {
+      setMostrandoSalvado(false);
+      setTextoRespuesta('');
+      setTimeout(() => {
+        intentarSalvar(true); // El hook pasa al siguiente amigo
+        setBloqueado(false);
+      }, 200);
+    } else if (textoRespuesta) {
+      setTextoRespuesta('');
+      setFase('ataque');
+      setTimeout(() => {
+        intentarSalvar(false);
+        setBloqueado(false);
+      }, 200);
+    } else if (fase === 'dialogo') {
+      setFase('save_menu');
       setBloqueado(false);
-    }, 150);
-  } else if (textoRespuesta) {
-    // Caso 2: Fallaste la respuesta (Texto de Asriel/Burla)
-    setTextoRespuesta('');
-    setFase('ataque');
-    setTimeout(() => {
-      intentarSalvar(false);
-      setBloqueado(false);
-    }, 150);
-  } else if (fase === 'dialogo') {
-    // ✅ CASO 3 (EL QUE TE FALTA): Diálogo inicial del amigo ("Ronaldo está rodeado...")
-    // Simplemente pasamos al menú de acciones (HOPE/DREAMS)
-    setFase('save_menu');
-    setBloqueado(false); 
-  }
-};
+    }
+  };
 
   if (!amigoActual) return <div className="bg-black min-h-screen" />;
 
   return (
-    <div className="relative flex flex-col items-center justify-start min-h-screen bg-black text-white font-mono overflow-hidden">
+    <div className="relative flex flex-col items-center min-h-screen bg-black text-white font-mono overflow-hidden">
       <Background />
       
-      {/* UX: Galería siempre arriba y visible */}
-      <div className="w-full z-30 h-[100px] flex items-center justify-center bg-black/40 backdrop-blur-sm border-b border-white/5">
+      {/* SECCIÓN 1: Galería Superior (Fija) */}
+      <div className="w-full z-30 h-[120px] md:h-[140px] flex items-center justify-center p-2 bg-black/60 backdrop-blur-md border-b border-white/10">
         <SoulGallery amigos={BATTLE_STORY.amigos} determinacion={determinacion} />
       </div>
 
-      {/* ÁREA DE SPRITE: Fix de Flicker con Keys únicas */}
-      <div className="flex-1 flex items-center justify-center relative w-full min-h-[300px]">
+      {/* SECCIÓN 2: Sprites (Altura fija para evitar que empuje el resto) */}
+      <div className="w-full flex-1 flex items-center justify-center relative min-h-[260px] md:min-h-[320px] z-10 p-4">
         <AnimatePresence mode="wait">
           {(fase === 'intro' || fase === 'ataque') && !mostrandoSalvado ? (
-            <motion.div key="asriel-sprite" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="enemy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Enemy fase={fase} />
             </motion.div>
           ) : (
             <motion.div 
-              // La key combinada evita que React reuse el componente X cuando ya ganaste
-              key={`${amigoActual.nombre}-${mostrandoSalvado ? 'color' : 'x'}`}
-              initial={{ opacity: 0, scale: 0.9 }} 
+              key={`${amigoActual.nombre}-${mostrandoSalvado}`} 
+              initial={{ opacity: 0, scale: 0.8 }} 
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               className="relative"
             >
               <img 
                 src={mostrandoSalvado ? amigoActual.fotoColor : amigoActual.fotoX} 
-                className={`w-64 h-64 object-contain border-4 shadow-2xl transition-all duration-500 ${
-                  mostrandoSalvado ? 'border-yellow-400 shadow-[0_0_30px_gold]' : 'border-red-600 grayscale brightness-50'
+                className={`w-52 h-52 md:w-72 md:h-72 object-contain border-4 shadow-2xl transition-all duration-500 ${
+                  mostrandoSalvado ? 'border-yellow-400 shadow-[0_0_40px_rgba(234,179,8,0.5)]' : 'border-red-600 grayscale'
                 }`}
               />
             </motion.div>
@@ -120,14 +106,19 @@ const continuarTrasRespuesta = () => {
         </AnimatePresence>
       </div>
 
-      <div className="h-[40px] flex items-center gap-4 my-2 z-10">
-        <span className="text-yellow-400 italic font-bold">HP {hp}/20</span>
-        <div className="w-48 h-4 bg-red-900 border border-white">
-          <div className="h-full bg-yellow-400" style={{ width: `${(hp/20)*100}%` }} />
+      {/* SECCIÓN 3: HP BAR (Compacta) */}
+      <div className="w-full flex items-center justify-center gap-4 h-[40px] z-20">
+        <span className="text-yellow-400 italic font-black text-xl md:text-2xl">HP {hp}/20</span>
+        <div className="w-40 md:w-60 h-4 bg-red-900 border-2 border-white rounded-sm overflow-hidden">
+          <motion.div 
+            className="h-full bg-yellow-400" 
+            animate={{ width: `${(hp/20)*100}%` }} 
+          />
         </div>
       </div>
 
-      <div className="z-10 px-4 w-full max-w-[620px]">
+      {/* SECCIÓN 4: Cuadro de Diálogo (Anclado) */}
+      <div className="w-full max-w-[650px] px-4 py-2 z-20 h-[180px] md:h-[220px]">
         <Screen fase={mostrandoSalvado ? 'salvacion' : (fase as any)}>
           <AnimatePresence mode="wait">
             {fase === 'intro' && (
@@ -140,11 +131,10 @@ const continuarTrasRespuesta = () => {
 
             {(fase === 'dialogo' || mostrandoSalvado) && (
               <DialogBox 
-            
-                key={mostrandoSalvado ? 'save-msg' : (textoRespuesta ? 'fail-msg' : 'inicio-amigo')}
+                key={mostrandoSalvado ? 'save' : (textoRespuesta ? 'fail' : 'init')}
                 texto={mostrandoSalvado ? amigoActual.fraseSalvado : (textoRespuesta || amigoActual.frasePerdida)} 
                 onComplete={continuarTrasRespuesta}
-            />
+              />
             )}
 
             {fase === 'ataque' && (
@@ -157,7 +147,8 @@ const continuarTrasRespuesta = () => {
         </Screen>
       </div>
 
-      <div className="h-[150px] w-full flex items-center justify-center mt-4">
+      {/* SECCIÓN 5: Menú de Acciones (Fijo abajo) */}
+      <div className="w-full max-w-[600px] h-[150px] md:h-[180px] flex items-center justify-center p-4 z-20">
         {fase === 'save_menu' && !mostrandoSalvado && !bloqueado && (
           <Actions amigo={amigoActual} onAction={manejarAccion} />
         )}
