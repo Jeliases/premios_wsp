@@ -1,318 +1,323 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useParams, useRouter } from 'next/navigation'
-import { 
-  CheckCircle2, 
-  Play, 
-  Loader2, 
-  LogIn, 
-  Maximize2, 
-  X, 
-  ChevronLeft,
-  Volume2,
-  VolumeX,
-  Award
-} from 'lucide-react'
+import confetti from 'canvas-confetti'
+import BattleMain from '@/components/gala/battle' 
+import GlitchTransition from '@/components/gala/battle/GlitchTransition'
+import { motion, AnimatePresence } from 'framer-motion' // 🚀 Importado para las animaciones épicas
 
-const ADMIN_WHITELIST = [
-  "j.luisestrada98@gmail.com", 
-  "indira.cachay9@gmail.com",
-  "thesoul986@gmail.com",
-  "elviscocho1998op@gmail.com"
-];
+export default function LiveGala() {
+  // --- ESTADOS ORIGINALES ---
+  const [estado, setEstado] = useState('idle')
+  const [ganador, setGanador] = useState<any>(null)
+  const [categoria, setCategoria] = useState('')
+  const [faseTexto, setFaseTexto] = useState<'ninguna' | 'fake' | 'real'>('ninguna')
+  const [mostrandoGlitch, setMostrandoGlitch] = useState(false)
 
-interface Nominado {
-  id: string;
-  titulo: string;
-  url_media: string;
-  tipo: 'video' | 'foto' | 'texto';
-  categoria_id: string;
-}
+  // 🔒 CONTROL DE ACCESO (Tu solución intacta)
+  const [bloqueado, setBloqueado] = useState(true)
+  const [loadingAccess, setLoadingAccess] = useState(true)
 
-// --- COMPONENTE DE VIDEO OPTIMIZADO ---
-function VideoPlayer({ src, onExpand }: { src: string, onExpand: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // --- REFERENCIAS ---
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const audioEsperaRef = useRef<HTMLAudioElement>(null)
+  const confettiIntervalRef = useRef<any>(null)
 
-  const toggleAudio = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (videoRef.current) {
-      const isNowMuted = !videoRef.current.muted;
-      videoRef.current.muted = isNowMuted;
-      setMuted(isNowMuted);
-    }
-  };
-
-  return (
-    <div className="relative w-full h-full group overflow-hidden bg-black flex items-center justify-center">
-      <video 
-        ref={videoRef}
-        src={src} 
-        className="w-full h-full object-contain md:object-cover"
-        muted={muted}
-        loop
-        autoPlay
-        playsInline
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onClick={toggleAudio}
-      />
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-
-      <button 
-        onClick={toggleAudio}
-        className="absolute bottom-4 right-4 z-20 bg-black/40 backdrop-blur-xl p-3 rounded-2xl border border-white/10 active:scale-90 transition-all"
-      >
-        {muted ? <VolumeX size={16} className="text-white/50" /> : <Volume2 size={16} className="text-yellow-500" />}
-      </button>
-
-      <button 
-        onClick={(e) => { e.stopPropagation(); onExpand(); }}
-        className="absolute top-4 right-4 z-20 bg-black/40 backdrop-blur-xl p-3 rounded-2xl border border-white/10 md:opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <Maximize2 size={16} className="text-white" />
-      </button>
-
-      {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-           <div className="bg-yellow-500 p-4 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.5)]">
-              <Play size={24} className="text-black fill-black" />
-           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function DetalleVotacion() {
-  const { id } = useParams()
-  const router = useRouter()
-  
-  const [nominados, setNominados] = useState<Nominado[]>([])
-  const [nombreCategoria, setNombreCategoria] = useState<string>("")
-  const [loading, setLoading] = useState(true)
-  const [votandoId, setVotandoId] = useState<string | null>(null)
-  const [user, setUser] = useState<any>(null)
-  const [expandedMedia, setExpandedMedia] = useState<Nominado | null>(null)
-
+  // =========================
+  // 🔒 VALIDACIÓN DE ACCESO
+  // =========================
   useEffect(() => {
-    const checkUser = async () => {
+    const checkAcceso = async () => {
+      setLoadingAccess(true)
+
       const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    checkUser()
 
-    async function fetchData() {
-      setLoading(true)
-      
-      // TRAER NOMINADOS
-      const { data: clipsData } = await supabase
-        .from('clips') 
+      if (!user) {
+        setBloqueado(true)
+        setLoadingAccess(false)
+        return
+      }
+
+      const { data: categorias } = await supabase.from('categorias').select('id')
+      const { data: votos } = await supabase.from('votos').select('categoria_id').eq('user_id', user.id)
+
+      if (!categorias || !votos) {
+        setBloqueado(true)
+        setLoadingAccess(false)
+        return
+      }
+
+      // 🔥 TU SOLUCIÓN: Evitar duplicados
+      const categoriasUnicas = [...new Set(votos.map(v => String(v.categoria_id)))]
+      const completo = categoriasUnicas.length === categorias.length
+
+      setBloqueado(!completo)
+      setLoadingAccess(false)
+    }
+
+    checkAcceso()
+  }, [])
+
+  // =========================
+  // ⚙️ LÓGICA ORIGINAL DE LA GALA
+  // =========================
+  useEffect(() => {
+    const cargarEstadoInicial = async () => {
+      const { data } = await supabase
+        .from('config_gala')
         .select('*')
-        .eq('categoria_id', id)
-      
-      if (clipsData) setNominados(clipsData as Nominado[])
-
-      // TRAER NOMBRE DE CATEGORÍA
-      const { data: catData } = await supabase
-        .from('categorias')
-        .select('nombre')
-        .eq('id', id)
+        .eq('id', 'main_config')
         .single()
-      
-      if (catData) setNombreCategoria(catData.nombre)
 
-      setLoading(false)
-    }
-    if (id) fetchData()
-  }, [id])
+      if (data) {
+        if (data.estado_revelacion === 'combate_asriel') {
+          setEstado('idle')
+        } else {
+          setEstado(data.estado_revelacion)
+        }
+        setCategoria(data.categoria_en_pantalla)
 
-  const handleLoginGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/votar/${id}` }
-    })
-  }
-
-  const votar = async (clipId: string) => {
-    if (!user) return
-    setVotandoId(clipId)
-
-    const { error } = await supabase
-      .from('votos')
-      .insert({ user_id: user.id, clip_id: clipId, categoria_id: id })
-
-    if (error) {
-      if (error.code === '23505') {
-        alert("Ya has registrado tu voto en esta categoría.")
-      } else {
-        alert("Error: " + error.message)
-      }
-      setVotandoId(null)
-      return
-    }
-
-    // Lógica de navegación automática
-    const { data: categorias } = await supabase
-      .from('categorias')
-      .select('id')
-      .order('id', { ascending: true })
-
-    if (categorias) {
-      const currentIdx = categorias.findIndex(cat => cat.id === id)
-      const nextCat = categorias[currentIdx + 1]
-      
-      if (nextCat) {
-        router.push(`/votar/${nextCat.id}`)
-      } else {
-        alert("¡Gracias por participar! Has completado todas las categorías.")
-        router.push('/votar') 
+        if (data.estado_revelacion === 'activar_susto') {
+          ejecutarSecuencia(data.categoria_activa)
+        }
       }
     }
-    setVotandoId(null)
+
+    cargarEstadoInicial()
+
+    const channel = supabase
+      .channel('cambios_gala')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'config_gala' },
+        (payload) => {
+          const { estado_revelacion, categoria_activa, categoria_en_pantalla } = payload.new
+
+          if (estado_revelacion === 'combate_asriel') {
+            setMostrandoGlitch(true)
+            
+            if (audioEsperaRef.current) audioEsperaRef.current.pause()
+            if (confettiIntervalRef.current) clearInterval(confettiIntervalRef.current)
+            
+            setTimeout(() => {
+              setMostrandoGlitch(false)
+              setEstado('combate_asriel')
+            }, 1500)
+          } else {
+            setEstado(estado_revelacion)
+          }
+
+          setCategoria(categoria_en_pantalla)
+
+          if (estado_revelacion === 'activar_susto') {
+            if (confettiIntervalRef.current) clearInterval(confettiIntervalRef.current)
+            if (audioEsperaRef.current) audioEsperaRef.current.pause()
+            ejecutarSecuencia(categoria_activa)
+          } 
+          else if (estado_revelacion === 'idle') {
+            if (audioEsperaRef.current) {
+              audioEsperaRef.current.currentTime = 0
+              audioEsperaRef.current.play().catch(() => {})
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+      if (confettiIntervalRef.current) clearInterval(confettiIntervalRef.current)
+    }
+  }, [])
+
+  const ejecutarSecuencia = async (catId: string) => {
+    setFaseTexto('ninguna')
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play()
+    }
+
+    setTimeout(() => setFaseTexto('fake'), 2000)
+
+    const { data: votos } = await supabase.from('votos').select('clip_id').eq('categoria_id', catId)
+
+    if (votos && votos.length > 0) {
+      const conteo = votos.reduce((acc: any, v: any) => {
+        acc[v.clip_id] = (acc[v.clip_id] || 0) + 1
+        return acc
+      }, {})
+
+      const ganadorId = Object.keys(conteo).reduce((a, b) => conteo[a] > conteo[b] ? a : b)
+
+      const { data: clip } = await supabase.from('clips').select('titulo, tipo, url_media').eq('id', ganadorId).single()
+      setGanador(clip)
+    }
+
+    setTimeout(() => {
+      setFaseTexto('real')
+
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, zIndex: 200 })
+
+      confettiIntervalRef.current = setInterval(() => {
+        confetti({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 200 })
+        confetti({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 200 })
+      }, 3000)
+
+    }, 7800)
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-yellow-500" size={40} />
-      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 text-center">
-        PREPARANDO CANDIDATOS<br/>
-        <span className="text-[8px] opacity-50 tracking-widest italic">WSP AWARDS 2026</span>
-      </span>
-    </div>
-  )
+  // =========================
+  // 🔒 RENDER DE BLOQUEO
+  // =========================
+  if (loadingAccess) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
+        <div className="w-8 h-8 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="tracking-widest uppercase text-xs text-slate-400">Verificando credenciales...</p>
+      </div>
+    )
+  }
+
+  if (bloqueado) {
+    return (
+      <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center text-center px-6 text-white">
+        <div className="bg-red-500/10 p-6 rounded-full mb-6">
+          <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        </div>
+        <h1 className="text-4xl md:text-5xl font-black italic mb-4 uppercase text-white tracking-tighter">
+          ACCESO <span className="text-red-500">RESTRINGIDO</span>
+        </h1>
+        <p className="text-slate-400 uppercase tracking-widest text-xs mb-10 max-w-md leading-relaxed">
+          Debes completar todas tus votaciones en las categorías oficiales antes de ingresar a la gala en vivo.
+        </p>
+        <button
+          onClick={() => window.location.href = '/votar'}
+          className="bg-white text-black hover:bg-yellow-500 transition-colors px-10 py-4 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(234,179,8,0.4)]"
+        >
+          Completar mis votos
+        </button>
+      </div>
+    )
+  }
+
+  // =========================
+  // 🎬 RENDER ORIGINAL DE LA GALA
+  // =========================
+  if (mostrandoGlitch) return <GlitchTransition />
+  
+  if (estado === 'combate_asriel') {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-1000">
+        <BattleMain />
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-white selection:bg-yellow-500/30">
+    <div className="relative min-h-screen bg-black overflow-hidden flex flex-col items-center justify-center font-sans selection:bg-yellow-500/30">
       
-      {/* NAV CORREGIDO PARA DARLING */}
-      <nav className="sticky top-0 z-[40] bg-[#05070a]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <button 
-            onClick={() => router.push('/votar')} 
-            className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-          >
-            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> 
-            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Regresar</span>
-          </button>
-          
-          <div className="flex items-center gap-3">
-            {user && ADMIN_WHITELIST.includes(user.email) && (
-              <span className="text-[8px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full font-black uppercase tracking-tighter">
-                Staff Mode
-              </span>
-            )}
-            <button 
-              onClick={() => router.push('/votar')} 
-              className="p-2 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-      </nav>
+      {/* 🎵 AUDIO DE ESPERA */}
+      <audio ref={audioEsperaRef} src="/music/espera.mp3" loop />
 
-      <div className="max-w-2xl mx-auto p-6 pt-12">
-        <header className="mb-16 text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="bg-yellow-500/10 p-3 rounded-2xl border border-yellow-500/20">
-              <Award className="text-yellow-500" size={24} />
-            </div>
-          </div>
-          {/* TÍTULO DINÁMICO CON ESTILO ORIGINAL */}
-          <h1 className="text-4xl md:text-7xl font-black italic uppercase tracking-tighter leading-[0.85]">
-            {nombreCategoria || 'CARGANDO'}<br/>
-            <span className="text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]">AWARDS</span>
+      {/* 📺 ESTADO 1: IDLE (ESPERA) */}
+      {estado === 'idle' && (
+        <div className="relative z-10 flex flex-col items-center justify-center text-center">
+          <div className="absolute inset-0 bg-yellow-500/10 blur-[100px] rounded-full w-96 h-96 -z-10 animate-pulse" />
+          <h1 className="text-6xl md:text-8xl text-white font-black tracking-tighter uppercase italic drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+            GALA <span className="text-yellow-500">LIVE</span>
           </h1>
-          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-black">Selecciona con sabiduría</p>
-        </header>
-
-        {/* LISTA DE NOMINADOS */}
-        <div className="space-y-12">
-          {nominados.map((item) => (
-            <div key={item.id} className="group bg-slate-900/20 rounded-[3rem] overflow-hidden border border-white/5 flex flex-col hover:border-white/10 transition-all shadow-2xl">
-              
-              <div className="relative aspect-video w-full overflow-hidden bg-black">
-                {item.tipo === 'video' ? (
-                  <VideoPlayer src={item.url_media} onExpand={() => setExpandedMedia(item)} />
-                ) : item.tipo === 'foto' ? (
-                  <img 
-                    src={item.url_media} 
-                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-700" 
-                    onClick={() => setExpandedMedia(item)} 
-                    alt={item.titulo}
-                  />
-                ) : (
-                  <div className="w-full h-full p-12 flex items-center justify-center text-center bg-gradient-to-br from-slate-900 to-black">
-                    <p className="text-2xl font-serif italic text-yellow-500/90 leading-relaxed">"{item.url_media}"</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-10 flex flex-col items-center text-center">
-                <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em] mb-3">Candidato Oficial</span>
-                <h3 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter mb-10 group-hover:text-yellow-500 transition-colors">
-                  {item.titulo}
-                </h3>
-                
-                {!user ? (
-                  <button onClick={handleLoginGoogle} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] bg-white text-black text-[11px] flex items-center justify-center gap-3 hover:bg-yellow-500 transition-all active:scale-95 shadow-xl">
-                    <LogIn size={18} /> Iniciar sesión para votar
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => votar(item.id)}
-                    disabled={votandoId !== null}
-                    className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl ${
-                      votandoId === item.id 
-                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
-                      : 'bg-white text-black hover:bg-yellow-500'
-                    }`}
-                  >
-                    {votandoId === item.id ? (
-                      <Loader2 className="animate-spin" size={20} />
-                    ) : (
-                      <><CheckCircle2 size={20} /> Confirmar Voto</>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* MODAL FULLSCREEN */}
-      {expandedMedia && (
-        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 md:p-10" onClick={() => setExpandedMedia(null)}>
-          <button className="absolute top-8 right-8 text-white/40 hover:text-white transition-colors bg-white/5 p-4 rounded-full">
-            <X size={32} />
-          </button>
-          
-          <div className="w-full max-w-5xl space-y-8" onClick={(e) => e.stopPropagation()}>
-            <div className="rounded-[2rem] overflow-hidden shadow-[0_0_100px_rgba(234,179,8,0.2)] border border-white/10 bg-black">
-              {expandedMedia.tipo === 'video' ? (
-                <video src={expandedMedia.url_media} className="w-full max-h-[70vh] object-contain" controls autoPlay />
-              ) : (
-                <img src={expandedMedia.url_media} className="w-full h-auto max-h-[70vh] object-contain mx-auto" alt="Expanded view" />
-              )}
-            </div>
-            <div className="text-center">
-              <h2 className="text-4xl md:text-6xl font-black uppercase italic text-yellow-500 tracking-tighter drop-shadow-2xl">
-                {expandedMedia.titulo}
-              </h2>
-            </div>
-          </div>
+          <p className="text-slate-500 tracking-[0.6em] text-xs font-bold uppercase mt-6">
+            Esperando al presentador...
+          </p>
         </div>
       )}
 
-      <footer className="py-32 text-center">
-        <p className="text-[10px] tracking-[1.2em] uppercase font-black text-white/10">WSP AWARDS 2026</p>
-      </footer>
+      {/* 🏆 ESTADO 2: REVELACIÓN (SUSPENSO Y GANADOR) */}
+      {estado === 'activar_susto' && (
+        <>
+          {/* VIDEO DE FONDO */}
+          <video
+            ref={videoRef}
+            src="/videos/transicion.mp4"
+            className="absolute inset-0 w-full h-full object-cover opacity-50"
+            muted
+            playsInline
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+
+          <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 w-full max-w-6xl">
+            
+            {/* TÍTULO DE LA CATEGORÍA */}
+            <h2 className="text-2xl md:text-3xl text-yellow-500 font-black tracking-[0.3em] uppercase mb-16 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+              {categoria}
+            </h2>
+
+            <div className="min-h-[300px] flex items-center justify-center w-full">
+              <AnimatePresence mode="wait">
+                
+                {/* ❌ FASE 1: FAKE (EL SUSPENSO) */}
+                {faseTexto === 'fake' && (
+                  <motion.div
+                    key="fake"
+                    initial={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
+                    animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
+                    transition={{ duration: 0.8 }}
+                    className="text-white text-5xl md:text-7xl font-black tracking-widest uppercase italic"
+                  >
+                    Y el ganador es...
+                  </motion.div>
+                )}
+
+                {/* ✅ FASE 2: REAL (EL GANADOR CON FUENTE EXPEDITION) */}
+                {faseTexto === 'real' && ganador && (
+                  <motion.div
+                    key="real"
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 1, type: "spring" }}
+                    className="flex flex-col items-center w-full"
+                  >
+                    {/* FUENTE EXPEDITION APLICADA AQUÍ */}
+                    <h1 
+                      className="text-6xl md:text-9xl text-white uppercase text-center drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]"
+                      style={{ 
+                        fontFamily: "'Expedition', 'Cinzel', serif", 
+                        fontWeight: 900, 
+                        letterSpacing: '0.05em',
+                        lineHeight: '1.1'
+                      }}
+                    >
+                      {ganador.titulo}
+                    </h1>
+
+                    {/* MEDIA DEL GANADOR (Foto o Video) */}
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.8, type: 'spring' }}
+                      className="mt-12 rounded-[2rem] overflow-hidden border-4 border-yellow-500 shadow-[0_0_80px_rgba(234,179,8,0.4)] max-w-3xl w-full aspect-video bg-[#0a0c10] relative"
+                    >
+                      {ganador.tipo === 'video' ? (
+                        <video src={ganador.url_media} className="w-full h-full object-cover" autoPlay loop muted />
+                      ) : ganador.tipo === 'foto' ? (
+                        <img src={ganador.url_media} className="w-full h-full object-cover" alt="Ganador" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-slate-900 to-black">
+                          <span className="text-yellow-500 text-3xl font-serif italic drop-shadow-lg">
+                            "{ganador.url_media}"
+                          </span>
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
