@@ -14,12 +14,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 const ENDING_STORY = [
-  "¡GALA COMPLETADA!",
-  "Habéis salvado los vínculos...",
-  "Gracias a toda la comunidad por estar presente.",
-  "Por cada risa, cada clip y cada momento rancio...",
-  "Sin vosotros, nada de esto tendría sentido.",
-  "STAFF WSP AWARDS 2026\nIndira • Luis Elias • The Soul • Elviscocho"
+  "Agradecer a todos por compartir y ser parte de todo lo que vivimos que se resume en los Premios WhatsApp del Indirismo.",
+  "Quién diría que por el maldito League of Legends y otros juegos más, terminaríamos coincidiendo aquí, formando algo tan especial.",
+  "De verdad espero que lo hayan disfrutado tanto como yo, porque esto no es solo un evento, es todo lo que hemos construido juntos",
+  "Somos una comunidad de distintos países, con realidades y personalidades muy diferentes, pero qué bonito se siente saber que, al final, todos pertenecemos a un mismo hogar y está aquí",
+  "No tengo dudas de que lo que se viene será mucho mejor, con nuevas experiencias, funas, juegos, nuevos personajes en este arco del anime, chistes y memes, pero siempre compartiéndolo entre todos nosotros.",
+  "Gracias por estar, por quedarse y por hacer que todo esto tenga sentido."
 ];
 
 export default function BattleMain() {

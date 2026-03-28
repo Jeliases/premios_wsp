@@ -19,9 +19,9 @@ export const BATTLE_STORY = {
     "¿De verdad creen que este 'vínculo' es real?",
     "Mírense... perdidos en una gala que solo oculta su soledad.",
     "Indira ni siquiera hace streams diarios, se burla de su tiempo.",
-    "No son sus amigos. Solo son números en una pantalla de TikTok.",
-    "¿Saben qué hace mientras no está? Se ríe con ese tal 'Developer D'.",
-    "Los cambió por alguien que 'sí sabe programar' de verdad.",
+    "No son sus amigos. Solo son números en una pantalla",
+    "¿Saben qué hace mientras no está? Se ríe con ese tal 'Developer",
+    "Los cambió por alguien mas ",
     "Ríndanse. Esta gala es tan falsa como su 'amistad' de bits."
   ],
   amigos: [
@@ -33,11 +33,11 @@ export const BATTLE_STORY = {
       frasePerdida: "Ronaldo está rodeado de sombras... parece estar entrando en su fase más edgy.",
       dialogoTriste: "Ya no importa... la programación es solo código vacío... Zaun está más cerca de lo que creen...",
       acciones: [
-        { texto: "Hablar de bugs", esCorrecta: false, respuesta: "Ronaldo se achicopala 'Ni eso puedo hacer bien' dice." },
+        { texto: "Le dices que ya anunciaron cap5 y 6 de Deltarune ", esCorrecta: false, respuesta: "Seguramente es falso TobyFox miente " },
         { texto: "Llamar al Comandante de las Tropas Jurásicas", esCorrecta: true, respuesta: "¡Ronaldo recuerda su rango! Sus ojos brillan con carisma." },
-        { texto: "Decirle que el anime es mid", esCorrecta: false, respuesta: "Se pone aún más edgy. Mal movimiento." }
+        { texto: "Decirle que el Genshi esta regalando deseos  ", esCorrecta: false, respuesta: "No te cree.. Se siente aun mas triste " }
       ],
-      fraseSalvado: "¡Pero Indi! 🗣️ ¡Yo ya estoy! ¡Nadie derrota a las Tropas Jurásicas!",
+      fraseSalvado: "¡Pero Indi!  ¡Yo ya estoy! ¡Nadie derrota a las Tropas Jurásicas!",
       color: "#facc15" 
     },
     {
@@ -45,10 +45,10 @@ export const BATTLE_STORY = {
       nombre: "HorrorKarua",
       fotoX: "/images/amigos/horrorKaruaX.png",
       fotoColor: "/images/amigos/horrorKarua.png",
-      frasePerdida: "Karua está mirando su billetera vacía... parece haber olvidado sus propios diseños.",
+      frasePerdida: "HorrorCaigua está mirando su billetera vacía... parece haber olvidado sus propios diseños.",
       dialogoTriste: "Genshin ya no tiene sentido... ¿Para qué diseñar algo hermoso si nadie escucha mis problemas?",
       acciones: [
-        { texto: "Pedirle dinero prestado", esCorrecta: false, respuesta: "Se estresa. '¡No tengo ni para el banner!' grita." },
+        { texto: "Le dices que ", esCorrecta: false, respuesta: "Se estresa. '¡No tengo ni para el banner!' grita." },
         { texto: "Contarle tus problemas de migajero", esCorrecta: true, respuesta: "Su instinto de lealtad despierta. ¡Empieza a aconsejarte!" },
         { texto: "Criticar su diseño", esCorrecta: false, respuesta: "Su carácter fuerte te intimida. No es por ahí." }
       ],
@@ -61,9 +61,9 @@ export const BATTLE_STORY = {
       fotoX: "/images/amigos/cristianX.png",
       fotoColor: "/images/amigos/cristian.png",
       frasePerdida: "Un eco rancio se escucha... Cristian ha olvidado cómo hacer reír.",
-      dialogoTriste: "T1 perdió... el Bar Otaku de Perú fue solo un sueño... solo soy una pichula ofendida...",
+      dialogoTriste: "T1 perdió... el Bar Otaku de Perú fue solo un sueño... ¿Para qué seguir intentando hacer chistes...?",
       acciones: [
-        { texto: "Pagarle 1 Bit por un chiste", esCorrecta: false, respuesta: "Cristian se siente comprado. 'Ni por un millón me sale uno'..." },
+        { texto: "Le cobras 1 bit por un chiste malo ", esCorrecta: false, respuesta: "Cristian se siente utlizado" },
         { texto: "Gritar: ¡VAS A CAER INDIRA!", esCorrecta: true, respuesta: "¡La frase lo hace reaccionar! ¡El humor rancio vuelve a su cuerpo!" },
         { texto: "Hablar de Valorant", esCorrecta: false, respuesta: "Prefiere el LOL. Se aburre." }
       ],
@@ -79,10 +79,10 @@ export const BATTLE_STORY = {
       dialogoTriste: "El Doctor no puede ayudarme ahora... Invencible resultó ser muy frágil...",
       acciones: [
         { texto: "Mencionar a Cristian", esCorrecta: true, respuesta: "¡Recordar a su 'hombre' le devuelve la determinación!" },
-        { texto: "Huir del Doctor", esCorrecta: false, respuesta: "Te alcanza y te hace llorar. Mala idea." },
+        { texto: "Tu Doctor da miedo ", esCorrecta: false, respuesta: "No tiene sentido DBD ahora " },
         { texto: "Hablar de brujas y slimes", esCorrecta: false, respuesta: "Se distrae, pero sigue triste." }
       ],
-      fraseSalvado: "¡Nadie me quita mi gorra! ¡Y menos me separan de mi Cristian!",
+      fraseSalvado: " El DarlCri es real ¡Nadie me  separan de mi Cristian!",
       color: "#ef4444" 
     },
     {
