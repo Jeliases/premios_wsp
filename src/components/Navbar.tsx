@@ -48,6 +48,8 @@ export default function Navbar() {
     await supabase.auth.signOut()
   }
 
+  // Mantenemos la lógica por si la necesitas en otro lado, 
+  // pero ya no bloqueará el botón.
   const isAdmin = user && user.email && ADMIN_WHITELIST.includes(user.email);
 
   return (
@@ -64,41 +66,41 @@ export default function Navbar() {
           </span>
         </Link>
         
- {/* LINKS CENTRALES - Responsive Inteligente */}
-<div className="flex items-center gap-4 md:gap-8 font-black uppercase text-[10px] tracking-[0.2em]">
-  <Link href="/votar" className="flex items-center gap-2 hover:text-yellow-500 transition-colors py-2">
-    <Vote size={18} className="md:w-3.5 md:h-3.5" /> 
-    <span className="hidden xs:inline">Votaciones</span>
-  </Link>
-  
-  <Link href="/resultados" className="flex items-center gap-2 hover:text-yellow-500 transition-colors py-2 group">
-    <div className="relative">
-      <BarChart3 size={18} className="md:w-3.5 md:h-3.5" />
-      <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
-      <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />
-    </div>
-    <span className="hidden xs:inline">Resultados</span>
-  </Link>
-</div>
+        {/* LINKS CENTRALES */}
+        <div className="flex items-center gap-4 md:gap-8 font-black uppercase text-[10px] tracking-[0.2em]">
+          <Link href="/votar" className="flex items-center gap-2 hover:text-yellow-500 transition-colors py-2">
+            <Vote size={18} className="md:w-3.5 md:h-3.5" /> 
+            <span className="hidden xs:inline">Votaciones</span>
+          </Link>
+          
+          <Link href="/resultados" className="flex items-center gap-2 hover:text-yellow-500 transition-colors py-2 group">
+            <div className="relative">
+              <BarChart3 size={18} className="md:w-3.5 md:h-3.5" />
+              <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
+              <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />
+            </div>
+            <span className="hidden xs:inline">Resultados</span>
+          </Link>
+        </div>
 
         {/* PERFIL / LOGIN */}
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-3">
-              {isAdmin && (
-                <Link 
-                  href="/admin" 
-                  className="hidden sm:flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg"
-                >
-                  <ShieldCheck size={12} />
-                  Panel Admin
-                </Link>
-              )}
+              
+              {/* ✅ BOTÓN LIBERADO PARA TODOS LOS LOGUEADOS */}
+              <Link 
+                href="/admin" 
+                className="hidden sm:flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg"
+              >
+                <ShieldCheck size={12} />
+                Panel Admin
+              </Link>
 
               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
                 <div className="hidden lg:block text-right">
                   <p className="text-[9px] text-yellow-500 font-black uppercase leading-none mb-1">
-                    {isAdmin ? ' STAFF' : ' VOTANTE'}
+                    STAFF
                   </p>
                   <p className="text-[11px] font-bold text-white truncate max-w-[120px]">
                     {user.user_metadata.full_name || 'Usuario WSP'}
