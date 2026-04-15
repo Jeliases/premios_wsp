@@ -16,8 +16,12 @@ export default function LiveGala() {
   const [mostrandoGlitch, setMostrandoGlitch] = useState(false)
 
   // 🔒 CONTROL DE ACCESO
-  const [bloqueado, setBloqueado] = useState(true)
-  const [loadingAccess, setLoadingAccess] = useState(true)
+  //const [bloqueado, setBloqueado] = useState(true)
+  //const [loadingAccess, setLoadingAccess] = useState(true)
+
+  // 🔓 CONTROL DE ACCESO (LIBERADO)
+  const [bloqueado, setBloqueado] = useState(false)
+  const [loadingAccess, setLoadingAccess] = useState(false)
 
   // --- REFERENCIAS ---
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -27,43 +31,14 @@ export default function LiveGala() {
   // =========================
   // 🔒 VALIDACIÓN DE ACCESO
   // =========================
+// =========================
+  // 🔒 VALIDACIÓN DE ACCESO
+  // =========================
+// =========================
+  // 🔓 VALIDACIÓN DE ACCESO (DESACTIVADA)
+  // =========================
   useEffect(() => {
-    const checkAcceso = async () => {
-      setLoadingAccess(true)
-
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        setBloqueado(true)
-        setLoadingAccess(false)
-        return
-      }
-
-      const { data: categorias } = await supabase
-        .from('categorias')
-        .select('id')
-
-      const { data: votos } = await supabase
-        .from('votos')
-        .select('categoria_id')
-        .eq('user_id', user.id)
-
-      if (!categorias || !votos) {
-        setBloqueado(true)
-        setLoadingAccess(false)
-        return
-      }
-
-      // 🔥 evitar duplicados
-      const categoriasUnicas = [...new Set(votos.map(v => String(v.categoria_id)))]
-
-      const completo = categoriasUnicas.length === categorias.length
-
-      setBloqueado(!completo)
-      setLoadingAccess(false)
-    }
-
-    checkAcceso()
+    // Código borrado a propósito para que todos puedan entrar
   }, [])
 
   // =========================
