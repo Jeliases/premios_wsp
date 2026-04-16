@@ -256,17 +256,17 @@ const verVotantes = async () => {
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-black text-white font-black uppercase tracking-[0.3em] animate-pulse">Cifrando Acceso...</div>
 
-  if (!user || !ADMIN_WHITELIST.includes(user.email)) {
+// 🔓 REGLA LIBERADA: Si no hay usuario, le pedimos que inicie sesión, pero si está logueado, ¡entra directo al panel!
+  if (!user) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 md:p-10 text-center">
-        <div className="bg-slate-900/50 p-8 md:p-12 rounded-[2.5rem] border border-red-500/30 w-full max-w-lg">
-          <h1 className="text-4xl md:text-5xl font-black mb-4 italic uppercase text-red-500">Acceso Denegado</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Zona exclusiva para Staff WSP.</p>
+        <div className="bg-slate-900/50 p-8 md:p-12 rounded-[2.5rem] border border-yellow-500/30 w-full max-w-lg">
+          <h1 className="text-4xl md:text-5xl font-black mb-4 italic uppercase text-yellow-500">Falta Acceso</h1>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Inicia sesión con Google en la barra superior para usar los controles.</p>
         </div>
       </div>
     )
   }
-
   return (
     <div className="min-h-screen bg-black pt-10 pb-20 px-4 md:px-0">
       <div className="max-w-6xl mx-auto space-y-12">
